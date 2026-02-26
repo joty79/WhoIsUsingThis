@@ -86,13 +86,13 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
-      "value": "{InstallRoot}\\assets\\icons\\WhoIsUsingThis.ico"
+      "value": "imageres.dll,-102"
     },
     {
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
-      "value": "wscript.exe \\\"{InstallRoot}\\\\WhoIsUsingThis.vbs\\\" \\\"%1\\\""
+      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
@@ -104,13 +104,13 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
-      "value": "{InstallRoot}\\assets\\icons\\WhoIsUsingThis.ico"
+      "value": "imageres.dll,-102"
     },
     {
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
-      "value": "wscript.exe \\\"{InstallRoot}\\\\WhoIsUsingThis.vbs\\\" \\\"%1\\\""
+      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     }
   ],
   "registry_verify": [
@@ -122,12 +122,12 @@ $script:ProfileJson = @'
     {
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
-      "expected": "wscript.exe \\\"{InstallRoot}\\\\WhoIsUsingThis.vbs\\\" \\\"%1\\\""
+      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
-      "expected": "wscript.exe \\\"{InstallRoot}\\\\WhoIsUsingThis.vbs\\\" \\\"%1\\\""
+      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     }
   ],
   "wrapper_patches": []

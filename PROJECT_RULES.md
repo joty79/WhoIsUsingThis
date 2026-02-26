@@ -43,3 +43,11 @@
 - Guardrail/rule: Use authenticated GitHub API zipball fallback via `gh auth token` + `Invoke-WebRequest https://api.github.com/repos/<repo>/zipball/<ref>` instead of `gh repo archive` flags.
 - Files affected: `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: `Parser::ParseFile` on regenerated `Install.ps1`; static check for `gh auth token` + API zipball fallback path.
+
+### Entry - 2026-02-26 (WSH command quoting fix)
+- Date: 2026-02-26
+- Problem: After install, context-menu click triggered `Windows Script Host failed` and icon presentation was inconsistent.
+- Root cause: Installer profile wrote registry command with escaped literal sequences (`\"` and doubled `\\`) instead of plain quoted command text.
+- Guardrail/rule: Registry command values must be stored as plain command strings (`wscript.exe "{InstallRoot}\WhoIsUsingThis.vbs" "%1"`), no literal backslash-escaped quote sequences; keep icon value aligned with stable shell icon source (`imageres.dll,-102`).
+- Files affected: `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: `Parser::ParseFile` on regenerated `Install.ps1`; static read-back check of generated profile-embedded command/icon values.
