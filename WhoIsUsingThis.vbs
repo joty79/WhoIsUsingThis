@@ -2,10 +2,12 @@ If WScript.Arguments.Count = 0 Then WScript.Quit
 
 Set WshShell = CreateObject("WScript.Shell")
 Set WshEnv = WshShell.Environment("PROCESS")
+Set Fso = CreateObject("Scripting.FileSystemObject")
 
 TargetPath = WScript.Arguments(0)
 Quote = Chr(34)
-ScriptPath = "D:\Users\joty79\scripts\WhoIsUsingThis\WhoIsUsingThis.ps1"
+ScriptRoot = Fso.GetParentFolderName(WScript.ScriptFullName)
+ScriptPath = ScriptRoot & "\WhoIsUsingThis.ps1"
 
 ' Set flag so the script knows it was launched hidden
 WshEnv("WHOISUSING_HIDDEN") = "1"

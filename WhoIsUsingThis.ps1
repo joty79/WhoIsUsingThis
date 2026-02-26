@@ -102,13 +102,38 @@ foreach ($cp in $criticalPaths) {
 
 Write-Host "`n--- Scanning: $targetPath ---" -ForegroundColor Cyan
 
+# Resolve handle.exe from bundled assets first, then fallback to PATH.
+$handleExePath = $null
+$handleCandidates = @(
+    (Join-Path $PSScriptRoot 'assets\bin\handle.exe'),
+    (Join-Path $PSScriptRoot 'handle.exe')
+)
+foreach ($candidate in $handleCandidates) {
+    if (Test-Path -LiteralPath $candidate) {
+        $handleExePath = $candidate
+        break
+    }
+}
+if (-not $handleExePath) {
+    $handleCmd = Get-Command handle.exe -ErrorAction SilentlyContinue
+    if ($handleCmd) {
+        $handleExePath = $handleCmd.Source
+    }
+}
+if (-not $handleExePath) {
+    Write-Host "`n$($ico.ERR) Error: handle.exe was not found." -ForegroundColor Red
+    Write-Host "   Expected: $PSScriptRoot\assets\bin\handle.exe" -ForegroundColor Gray
+    Write-Host "`nPress any key to close..." -ForegroundColor Yellow
+    $null = [Console]::ReadKey(); exit
+}
+
 # =========================================================
 # ΜΕΘΟΔΟΣ 1: Handle.exe (Standard Locks)
 # =========================================================
 Write-Host "$($ico.N1)  Έλεγχος Handles (Standard Locks)..." -ForegroundColor Gray
 
 # Μόνο ακριβής αναζήτηση (Χωρίς Spam)
-$handleResults = & "handle.exe" -a -u "$targetPath" 2>$null
+$handleResults = & $handleExePath -a -u "$targetPath" 2>$null
 
 if ($handleResults -match "pid:") {
     $processedPids = @()
