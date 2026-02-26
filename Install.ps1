@@ -289,9 +289,18 @@ function ResolveSourceRoot {
     catch {
         if (Get-Command gh.exe -ErrorAction SilentlyContinue) {
             try {
-                Log 'Invoke-WebRequest failed; trying authenticated GitHub CLI archive fallback...'
-                & gh.exe repo archive $GitHubRepo --ref $GitHubRef --format zip --output $zip | Out-Null
-                if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $zip)) {
+                Log 'Invoke-WebRequest failed; trying authenticated GitHub API fallback via gh auth token...'
+                $ghToken = (& gh.exe auth token 2>$null | Out-String).Trim()
+                if (-not [string]::IsNullOrWhiteSpace($ghToken)) {
+                    $apiHeaders = @{
+                        'User-Agent' = "$($script:ToolName)Installer/$($script:InstallerVersion)"
+                        'Authorization' = "Bearer $ghToken"
+                        'Accept' = 'application/vnd.github+json'
+                    }
+                    $apiUrl = "https://api.github.com/repos/$GitHubRepo/zipball/$GitHubRef"
+                    Invoke-WebRequest -Uri $apiUrl -OutFile $zip -UseBasicParsing -Headers $apiHeaders
+                }
+                if (Test-Path -LiteralPath $zip) {
                     $downloaded = $true
                 }
             }

@@ -32,6 +32,14 @@
 - Date: 2026-02-26
 - Problem: GitHub install path could fall back to local source on private repo, and registry verify could mismatch on menu text.
 - Root cause: Anonymous codeload zip URL for private repo returns 404; profile used escaped unicode sequence and leading-space-sensitive `MUIVerb`.
-- Guardrail/rule: Installer download flow must try authenticated `gh repo archive` fallback when `Invoke-WebRequest` fails; `MUIVerb` strings should use normalized text (`Who is using this 🔎?`) without leading space and without `\ud...` escape literals.
+- Guardrail/rule: Installer download flow must try authenticated `gh`-based fallback when `Invoke-WebRequest` fails; `MUIVerb` strings should use normalized text (`Who is using this 🔎?`) without leading space and without `\ud...` escape literals.
 - Files affected: `Install.ps1`, `WhoIsUsingThis.reg`, `PROJECT_RULES.md`.
 - Validation/tests run: `Parser::ParseFile` on `Install.ps1`; static scan for `gh.exe repo archive` fallback and normalized `MUIVerb` values.
+
+### Entry - 2026-02-26 (GitHub CLI compatibility fallback)
+- Date: 2026-02-26
+- Problem: Installer printed `unknown flag: --ref` during GitHub fallback and returned to local source.
+- Root cause: Installed `gh` variant does not support `gh repo archive --ref ... --format ... --output ...`.
+- Guardrail/rule: Use authenticated GitHub API zipball fallback via `gh auth token` + `Invoke-WebRequest https://api.github.com/repos/<repo>/zipball/<ref>` instead of `gh repo archive` flags.
+- Files affected: `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: `Parser::ParseFile` on regenerated `Install.ps1`; static check for `gh auth token` + API zipball fallback path.
