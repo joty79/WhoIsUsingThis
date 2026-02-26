@@ -11,14 +11,14 @@ Windows Registry Editor Version 5.00
 [-HKEY_CLASSES_ROOT\Directory\shell\CheckLocks]
 
 [HKEY_CURRENT_USER\Software\Classes\*\shell\WhoIsUsingThis]
-@=" Who is using this 🔎?"
+@="Who is using this 🔎?"
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\*\shell\WhoIsUsingThis\command]
 @="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%1\""
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\shell\WhoIsUsingThis]
-@=" Who is using this 🔎?"
+@="Who is using this 🔎?"
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\shell\WhoIsUsingThis\command]

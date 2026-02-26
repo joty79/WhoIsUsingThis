@@ -80,7 +80,7 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
-      "value": " Who is using this \\ud83d\\udd0e?"
+      "value": "Who is using this 🔎?"
     },
     {
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
@@ -98,7 +98,7 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
-      "value": " Who is using this \\ud83d\\udd0e?"
+      "value": "Who is using this 🔎?"
     },
     {
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
@@ -117,7 +117,7 @@ $script:ProfileJson = @'
     {
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
-      "expected": " Who is using this \\ud83d\\udd0e?"
+      "expected": "Who is using this 🔎?"
     },
     {
       "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis\\command",
@@ -277,13 +277,41 @@ function ResolveSourceRoot {
     EnsureDir $tmp; EnsureDir $ext
     $script:TempPackageRoots.Add($tmp) | Out-Null
     Log "Downloading package: $url"
+    $downloaded = $false
     try {
-        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing
+        $headers = @{ 'User-Agent' = "$($script:ToolName)Installer/$($script:InstallerVersion)" }
+        if (-not [string]::IsNullOrWhiteSpace($env:GITHUB_TOKEN)) {
+            $headers['Authorization'] = "Bearer $($env:GITHUB_TOKEN)"
+        }
+        Invoke-WebRequest -Uri $url -OutFile $zip -UseBasicParsing -Headers $headers
+        $downloaded = $true
+    }
+    catch {
+        if (Get-Command gh.exe -ErrorAction SilentlyContinue) {
+            try {
+                Log 'Invoke-WebRequest failed; trying authenticated GitHub CLI archive fallback...'
+                & gh.exe repo archive $GitHubRepo --ref $GitHubRef --format zip --output $zip | Out-Null
+                if ($LASTEXITCODE -eq 0 -and (Test-Path -LiteralPath $zip)) {
+                    $downloaded = $true
+                }
+            }
+            catch {}
+        }
+        if (-not $downloaded) {
+            if ($fallbackRoots.Count -gt 0) {
+                Log "GitHub fetch failed. Falling back to local package source: $($fallbackRoots[0])" 'WARN'
+                $script:ResolvedPackageSource = 'Local'
+                return $fallbackRoots[0]
+            }
+            throw
+        }
+    }
+    try {
         Expand-Archive -Path $zip -DestinationPath $ext -Force
     }
     catch {
         if ($fallbackRoots.Count -gt 0) {
-            Log "GitHub fetch failed. Falling back to local package source: $($fallbackRoots[0])" 'WARN'
+            Log "GitHub extract failed. Falling back to local package source: $($fallbackRoots[0])" 'WARN'
             $script:ResolvedPackageSource = 'Local'
             return $fallbackRoots[0]
         }
