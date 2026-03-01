@@ -23,7 +23,7 @@ $script:ProfileJson = @'
   "installer_title": "WhoIsUsingThis Installer",
   "install_folder_name": "WhoIsUsingThisContext",
   "github_repo": "joty79/WhoIsUsingThis",
-  "github_ref": "master",
+  "github_ref": "latest",
   "legacy_root": "D:\\Users\\joty79\\scripts\\WhoIsUsingThis",
   "publisher": "joty79",
   "uninstall_key_name": "WhoIsUsingThisContext",
