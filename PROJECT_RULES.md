@@ -59,3 +59,27 @@
 - Guardrail/rule: In this repo, install `WhoIsUsingThis` only as a child verb under `*\shell\SystemTools\shell\WhoIsUsingThis` and `Directory\shell\SystemTools\shell\WhoIsUsingThis`; cleanup must stay targeted to this repo's legacy standalone keys and owned child keys, never delete the shared `SystemTools` parent.
 - Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: Static review of registry paths in `.reg` and installer profile; `Parser::ParseFile` on `Install.ps1`.
+
+### Entry - 2026-03-01 (GitHub ref autodetect)
+- Date: 2026-03-01
+- Problem: Installer required a hardcoded `github_ref`, which broke expected behavior when both `master` and `latest` existed.
+- Root cause: GitHub install/update flow used a fixed default ref instead of resolving available remote branches.
+- Guardrail/rule: For GitHub installs in this repo, if `-GitHubRef` is not explicitly provided, autodetect in this order: remote default branch, `master`, profile value, then `latest`; keep explicit `-GitHubRef` as an override.
+- Files affected: `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: `Parser::ParseFile` on `Install.ps1`; static review of GitHub ref resolution flow.
+
+### Entry - 2026-03-02 (Regenerated installer from InstallerCore)
+- Date: 2026-03-02
+- Problem: Local installer logic had drifted from the shared template and needed the restored branch picker, GitHub ref autodetect, clean Explorer restart flow, and current `System Tools` submenu profile values in one consistent generated file.
+- Root cause: Repo installer had accumulated direct edits while `InstallerCore` was missing some of the intended template behavior.
+- Guardrail/rule: Prefer regenerating `Install.ps1` from `InstallerCore` after template/profile fixes instead of hand-merging installer logic in this repo.
+- Files affected: `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: `New-ToolInstaller.ps1` generation from `InstallerCore`; `Parser::ParseFile` on regenerated `Install.ps1`.
+
+### Entry - 2026-03-02 (SystemTools file/folder host parents must exist)
+- Date: 2026-03-02
+- Problem: `WhoIsUsingThis` registration broke the shared `System Tools` submenu.
+- Root cause: Live registry had only `Directory\Background\shell\SystemTools`; file (`*\shell`) and folder (`Directory\shell`) `SystemTools` parents were missing, so the child verb had no valid host submenu on those branches.
+- Guardrail/rule: For this repo's `SystemTools` integration, ensure `*\shell\SystemTools` and `Directory\shell\SystemTools` exist as proper cascade parents (`MUIVerb`, `SubCommands`, `Icon`) before writing nested `shell\WhoIsUsingThis` child keys.
+- Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: Live `reg query` of installed `SystemTools` branches; regenerated installer/profile expected to emit file/folder parent keys plus child verb keys.
