@@ -51,3 +51,11 @@
 - Guardrail/rule: Registry command values must be stored as plain command strings (`wscript.exe "{InstallRoot}\WhoIsUsingThis.vbs" "%1"`), no literal backslash-escaped quote sequences; keep icon value aligned with stable shell icon source (`imageres.dll,-102`).
 - Files affected: `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: `Parser::ParseFile` on regenerated `Install.ps1`; static read-back check of generated profile-embedded command/icon values.
+
+### Entry - 2026-03-01 (Move verb under shared System Tools submenu)
+- Date: 2026-03-01
+- Problem: `WhoIsUsingThis` needed to appear under the shared `System Tools` submenu instead of as a top-level context-menu verb.
+- Root cause: Registry definitions and installer profile still wrote standalone keys under `*\shell\WhoIsUsingThis` and `Directory\shell\WhoIsUsingThis`.
+- Guardrail/rule: In this repo, install `WhoIsUsingThis` only as a child verb under `*\shell\SystemTools\shell\WhoIsUsingThis` and `Directory\shell\SystemTools\shell\WhoIsUsingThis`; cleanup must stay targeted to this repo's legacy standalone keys and owned child keys, never delete the shared `SystemTools` parent.
+- Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: Static review of registry paths in `.reg` and installer profile; `Parser::ParseFile` on `Install.ps1`.

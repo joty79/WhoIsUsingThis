@@ -70,44 +70,76 @@ $script:ProfileJson = @'
     "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\*\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\Directory\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\CheckLocks",
     "HKCR\\*\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\shell\\WhoIsUsingThis",
     "HKCR\\*\\shell\\CheckLocks",
-    "HKCR\\Directory\\shell\\CheckLocks"
+    "HKCR\\Directory\\shell\\CheckLocks",
+    "HKCR\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCR\\*\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\CheckLocks"
   ],
   "registry_values": [
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools",
+      "name": "MUIVerb",
+      "type": "REG_SZ",
+      "value": "System Tools"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools",
+      "name": "SubCommands",
+      "type": "REG_SZ",
+      "value": ""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this 🔎?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools",
+      "name": "MUIVerb",
+      "type": "REG_SZ",
+      "value": "System Tools"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools",
+      "name": "SubCommands",
+      "type": "REG_SZ",
+      "value": ""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this 🔎?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
@@ -115,17 +147,17 @@ $script:ProfileJson = @'
   ],
   "registry_verify": [
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "expected": "Who is using this 🔎?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     }
