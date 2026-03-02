@@ -83,3 +83,19 @@
 - Guardrail/rule: For this repo's `SystemTools` integration, ensure `*\shell\SystemTools` and `Directory\shell\SystemTools` exist as proper cascade parents (`MUIVerb`, `SubCommands`, `Icon`) before writing nested `shell\WhoIsUsingThis` child keys.
 - Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: Live `reg query` of installed `SystemTools` branches; regenerated installer/profile expected to emit file/folder parent keys plus child verb keys.
+
+### Entry - 2026-03-02 (WhoIsUsingThis is child-only under System Tools)
+- Date: 2026-03-02
+- Problem: The quick local fix for missing `SystemTools` parents made `WhoIsUsingThis` act like a submenu host, which does not scale once multiple child tools participate.
+- Root cause: Parent-key ownership was patched into this child repo instead of being fixed at the host repo (`SystemTools`).
+- Guardrail/rule: `WhoIsUsingThis` must remain child-only under the shared submenu. It may register only `*\shell\SystemTools\shell\WhoIsUsingThis` and `Directory\shell\SystemTools\shell\WhoIsUsingThis`, plus targeted cleanup of its own legacy keys; parent `SystemTools` keys are owned by `SystemTools` and must not be emitted here.
+- Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: Regenerated installer from updated `InstallerCore` profile; static review of manual `.reg`.
+
+### Entry - 2026-03-02 (Regenerated after empty-string registry helper hardening)
+- Date: 2026-03-02
+- Problem: Generated installer inherited a fragile template helper for empty-string registry writes.
+- Root cause: `InstallerCore` template still used a literal `""` conversion pattern for empty `REG_SZ` values before the shared helper was hardened.
+- Guardrail/rule: Keep `Install.ps1` generated from the current `InstallerCore` template after helper fixes; do not hand-maintain older generated copies once registry write semantics change in the template.
+- Files affected: `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: Regenerated `Install.ps1` from `InstallerCore`; parser validation on generated installer; targeted scan confirmed the old literal `""` pattern is absent.
