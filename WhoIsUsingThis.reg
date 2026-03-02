@@ -7,16 +7,24 @@ Windows Registry Editor Version 5.00
 [-HKEY_CURRENT_USER\Software\Classes\Directory\shell\CheckLocks]
 [-HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\WhoIsUsingThis]
 [-HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis]
 [-HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\CheckLocks]
 [-HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\CheckLocks]
 [-HKEY_CLASSES_ROOT\*\shell\WhoIsUsingThis]
 [-HKEY_CLASSES_ROOT\Directory\shell\WhoIsUsingThis]
 [-HKEY_CLASSES_ROOT\*\shell\CheckLocks]
 [-HKEY_CLASSES_ROOT\Directory\shell\CheckLocks]
 [-HKEY_CLASSES_ROOT\*\shell\SystemTools\shell\WhoIsUsingThis]
 [-HKEY_CLASSES_ROOT\Directory\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis]
 [-HKEY_CLASSES_ROOT\*\shell\SystemTools\shell\CheckLocks]
 [-HKEY_CLASSES_ROOT\Directory\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\Directory\Background\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\DesktopBackground\Shell\SystemTools\shell\CheckLocks]
 
 [HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\WhoIsUsingThis]
 "MUIVerb"="Who is using this 🔎?"
@@ -31,3 +39,17 @@ Windows Registry Editor Version 5.00
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\WhoIsUsingThis\command]
 @="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis]
+"MUIVerb"="Who is using this 🔎?"
+"Icon"="imageres.dll,-102"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis\command]
+@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%V\""
+
+[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis]
+"MUIVerb"="Who is using this 🔎?"
+"Icon"="imageres.dll,-102"
+
+[HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis\command]
+@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%V\""
