@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+; Cleanup legacy/current verb keys (safe: delete only if key exists)
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\CheckLocks]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\CheckLocks]
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\*\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\Directory\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\*\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\Directory\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\*\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\Directory\shell\SystemTools\shell\WhoIsUsingThis]
+[-HKEY_CLASSES_ROOT\*\shell\SystemTools\shell\CheckLocks]
+[-HKEY_CLASSES_ROOT\Directory\shell\SystemTools\shell\CheckLocks]
+
