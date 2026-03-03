@@ -857,36 +857,23 @@ function ReadRefInteractive([string]$DefaultRef) {
             $suffix = if ($name -eq $normalizedDefault) { ' (default)' } else { '' }
             Write-Host ("[{0}] {1}{2}" -f $n, $name, $suffix) -ForegroundColor Gray
         }
-        Write-Host '[M] Manual branch/ref input' -ForegroundColor Gray
         Write-Host '[Enter] Use default' -ForegroundColor Gray
 
         while ($true) {
             $choice = (Read-Host ("Select branch number (blank = {0})" -f $normalizedDefault)).Trim()
             if ([string]::IsNullOrWhiteSpace($choice)) { return $normalizedDefault }
-            if ($choice.Equals('m', [System.StringComparison]::OrdinalIgnoreCase)) { break }
             if ($choice -match '^\d+$') {
                 $index = [int]$choice
                 if ($index -ge 1 -and $index -le $branches.Count) {
                     return $branches[$index - 1]
                 }
             }
-            Write-Host 'Invalid selection. Choose a number, M, or Enter.' -ForegroundColor Yellow
+            Write-Host 'Invalid selection. Choose a number or Enter.' -ForegroundColor Yellow
         }
     }
 
-    while ($true) {
-        $raw = Read-Host ("GitHub branch/ref (blank = {0})" -f $normalizedDefault)
-        $candidate = if ($null -eq $raw) { '' } else { $raw.Trim() }
-        if ([string]::IsNullOrWhiteSpace($candidate)) { return $normalizedDefault }
-        if ($candidate.StartsWith('refs/heads/', [System.StringComparison]::OrdinalIgnoreCase)) {
-            $candidate = $candidate.Substring('refs/heads/'.Length)
-        }
-        if ([string]::IsNullOrWhiteSpace($candidate)) {
-            Write-Host 'Invalid branch/ref. Try again.' -ForegroundColor Yellow
-            continue
-        }
-        return $candidate
-    }
+    Write-Host ("Could not read branch list. Using default ref: {0}" -f $normalizedDefault) -ForegroundColor Yellow
+    return $normalizedDefault
 }
 
 function ReadPackageSourceInteractive([ValidateSet('Install', 'Update')] [string]$Mode, [ValidateSet('Local', 'GitHub')] [string]$DefaultSource = 'GitHub') {
