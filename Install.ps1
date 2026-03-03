@@ -1,7 +1,7 @@
 #requires -version 7.0
 [CmdletBinding()]
 param(
-    [ValidateSet('Install', 'Update', 'Uninstall', 'InstallGitHub', 'UpdateGitHub', 'OpenInstallDirectory', 'OpenInstallLogs', 'DownloadLatest')]
+    [ValidateSet('Install', 'Update', 'Uninstall', 'InstallGitHub', 'UpdateGitHub', 'OpenInstallDirectory', 'OpenInstallLogs')]
     [string]$Action = 'Install',
     [string]$InstallPath = '',
     [string]$SourcePath = $PSScriptRoot,
@@ -72,16 +72,24 @@ $script:ProfileJson = @'
     "HKCU\\Software\\Classes\\Directory\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\CheckLocks",
     "HKCR\\*\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\shell\\WhoIsUsingThis",
     "HKCR\\*\\shell\\CheckLocks",
     "HKCR\\Directory\\shell\\CheckLocks",
     "HKCR\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
     "HKCR\\*\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCR\\Directory\\shell\\SystemTools\\shell\\CheckLocks"
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\CheckLocks",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\CheckLocks"
   ],
   "registry_values": [
     {
@@ -119,6 +127,42 @@ $script:ProfileJson = @'
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+      "name": "MUIVerb",
+      "type": "REG_SZ",
+      "value": "Who is using this 🔎?"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
+      "name": "Icon",
+      "type": "REG_SZ",
+      "value": "imageres.dll,-102"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
+      "name": "(default)",
+      "type": "REG_SZ",
+      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
+      "name": "MUIVerb",
+      "type": "REG_SZ",
+      "value": "Who is using this 🔎?"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
+      "name": "Icon",
+      "type": "REG_SZ",
+      "value": "imageres.dll,-102"
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
+      "name": "(default)",
+      "type": "REG_SZ",
+      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }
   ],
   "registry_verify": [
@@ -136,6 +180,16 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
+      "name": "(default)",
+      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
+    },
+    {
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis\\command",
+      "name": "(default)",
+      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }
   ],
   "wrapper_patches": []
@@ -487,18 +541,6 @@ function Deploy([string]$SourceRoot, [string]$InstallRoot) {
     }
 }
 
-function CleanupTempPackageRoots {
-    foreach ($tempRoot in $script:TempPackageRoots) {
-        try {
-            if (Test-Path -LiteralPath $tempRoot) {
-                Remove-Item -LiteralPath $tempRoot -Recurse -Force -ErrorAction SilentlyContinue
-            }
-        }
-        catch {}
-    }
-    $script:TempPackageRoots.Clear()
-}
-
 function PatchWrappers([string]$InstallRoot) {
     foreach ($p in @((Get-P 'wrapper_patches' @()))) {
         $fileRel = [string]$p.file; $regex = [string]$p.regex; $repRaw = [string]$p.replacement
@@ -627,7 +669,7 @@ function RunInstallOrUpdate([ValidateSet('Install', 'Update')] [string]$Mode) {
     Log "Starting $Mode to $InstallPath"
     foreach ($cmd in @('pwsh.exe', 'wscript.exe') + (Arr 'required_commands')) { if (-not (Get-Command $cmd -ErrorAction SilentlyContinue)) { Log "Missing required command: $cmd" 'ERROR'; return 1 } }
     EnsureDir $InstallPath; EnsureDir (Join-Path $InstallPath 'logs'); EnsureDir (Join-Path $InstallPath 'state'); EnsureDir (Join-Path $InstallPath 'assets')
-    try { $src = ResolveSourceRoot; Deploy -SourceRoot $src -InstallRoot $InstallPath } finally { CleanupTempPackageRoots }
+    try { $src = ResolveSourceRoot; Deploy -SourceRoot $src -InstallRoot $InstallPath } finally { foreach ($t in $script:TempPackageRoots) { try { if (Test-Path -LiteralPath $t) { Remove-Item -LiteralPath $t -Recurse -Force -ErrorAction SilentlyContinue } } catch {} } $script:TempPackageRoots.Clear() }
     PatchWrappers -InstallRoot $InstallPath
     $coreOk = VerifyCore -InstallRoot $InstallPath
     WriteRegistry -InstallRoot $InstallPath
@@ -656,57 +698,6 @@ function RunUninstall {
     return 0
 }
 
-function Start-RelaunchUpdatedInstaller([string]$TargetRoot) {
-    $updatedInstaller = Join-Path $TargetRoot 'Install.ps1'
-    if (-not (Test-Path -LiteralPath $updatedInstaller)) {
-        throw "Updated installer was not found after download: $updatedInstaller"
-    }
-
-    $pwshCmd = Get-Command pwsh.exe -ErrorAction SilentlyContinue
-    $pwshExe = if ($null -ne $pwshCmd) { $pwshCmd.Source } else { Join-Path $PSHOME 'pwsh.exe' }
-    $launcherPath = Join-Path $env:TEMP ("{0}_relaunch_{1}.cmd" -f $script:ToolName, [guid]::NewGuid().ToString('N'))
-    $launcherContent = @(
-        '@echo off',
-        'setlocal',
-        'timeout /t 2 /nobreak >nul',
-        ('start "" "{0}" -ExecutionPolicy Bypass -File "{1}"' -f $pwshExe, $updatedInstaller),
-        'del "%~f0"'
-    )
-    Set-Content -LiteralPath $launcherPath -Value $launcherContent -Encoding ASCII
-    Start-Process -FilePath $launcherPath -WindowStyle Hidden | Out-Null
-}
-
-function RunDownloadLatest {
-    $targetRoot = Norm $PSScriptRoot
-    Log "Starting DownloadLatest to $targetRoot"
-
-    if (-not (Get-Command pwsh.exe -ErrorAction SilentlyContinue)) {
-        Log 'Missing required command: pwsh.exe' 'ERROR'
-        return 1
-    }
-
-    try {
-        $src = ResolveSourceRoot
-        if ($script:ResolvedPackageSource -ne 'GitHub') {
-            throw 'GitHub download failed. DownloadLatest does not allow local fallback.'
-        }
-
-        Deploy -SourceRoot $src -InstallRoot $targetRoot
-        $coreOk = VerifyCore -InstallRoot $targetRoot
-        if (-not $coreOk) {
-            Write-Host 'Download Latest completed with warnings.' -ForegroundColor Yellow
-            return 2
-        }
-
-        Start-RelaunchUpdatedInstaller -TargetRoot $targetRoot
-        Write-Host 'Latest files downloaded successfully. Relaunching updated installer...' -ForegroundColor Green
-        return 0
-    }
-    finally {
-        CleanupTempPackageRoots
-    }
-}
-
 function ShowMenu {
     while ($true) {
         try { Clear-Host } catch {}
@@ -719,12 +710,11 @@ function ShowMenu {
         Write-Host '[1] Install' -ForegroundColor Green
         Write-Host '[2] Update' -ForegroundColor Yellow
         Write-Host '[3] Uninstall' -ForegroundColor Red
-        Write-Host '[4] Download Latest here' -ForegroundColor Green
-        Write-Host '[5] Open install directory' -ForegroundColor Cyan
-        Write-Host ('[6] {0}' -f ([string](Get-P 'menu_option_5_label' 'Open install logs'))) -ForegroundColor Cyan
+        Write-Host '[4] Open install directory' -ForegroundColor Cyan
+        Write-Host ('[5] {0}' -f ([string](Get-P 'menu_option_5_label' 'Open install logs'))) -ForegroundColor Cyan
         Write-Host '[0] Exit' -ForegroundColor Gray
         $c = (Read-Host 'Select option').Trim()
-        switch ($c) { '1' { return 'Install' }; '2' { return 'Update' }; '3' { return 'Uninstall' }; '4' { return 'DownloadLatest' }; '5' { return 'OpenInstallDirectory' }; '6' { return 'OpenInstallLogs' }; '0' { return 'Exit' } }
+        switch ($c) { '1' { return 'Install' }; '2' { return 'Update' }; '3' { return 'Uninstall' }; '4' { return 'OpenInstallDirectory' }; '5' { return 'OpenInstallLogs' }; '0' { return 'Exit' } }
     }
 }
 
@@ -819,16 +809,53 @@ function ReadRefInteractive([string]$DefaultRef) {
     }
 }
 
+function ReadPackageSourceInteractive([ValidateSet('Install', 'Update')] [string]$Mode, [ValidateSet('Local', 'GitHub')] [string]$DefaultSource = 'GitHub') {
+    $defaultLabel = if ($DefaultSource -eq 'GitHub') { 'GitHub' } else { 'Local' }
+    Write-Host ''
+    Write-Host ("Package source for {0}:" -f $Mode) -ForegroundColor Cyan
+    Write-Host ("[1] GitHub{0}" -f $(if ($DefaultSource -eq 'GitHub') { ' (default)' } else { '' })) -ForegroundColor Gray
+    Write-Host ("[2] Local{0}" -f $(if ($DefaultSource -eq 'Local') { ' (default)' } else { '' })) -ForegroundColor Gray
+
+    while ($true) {
+        $choice = (Read-Host ("Select package source (blank = {0})" -f $defaultLabel)).Trim()
+        if ([string]::IsNullOrWhiteSpace($choice)) { return $DefaultSource }
+        switch ($choice) {
+            '1' { return 'GitHub' }
+            '2' { return 'Local' }
+            default { Write-Host 'Invalid selection. Choose 1, 2, or Enter.' -ForegroundColor Yellow }
+        }
+    }
+}
+
+function PreparePackageSource([ValidateSet('Install', 'Update')] [string]$Mode) {
+    if (-not $script:HasCliArgs) {
+        $defaultSource = if ($PackageSource -eq 'Local') { 'GitHub' } else { $PackageSource }
+        $PackageSource = ReadPackageSourceInteractive -Mode $Mode -DefaultSource $defaultSource
+        Set-Variable -Name PackageSource -Scope Script -Value $PackageSource
+    }
+
+    if ($PackageSource -eq 'GitHub') {
+        EnsureGitHubRefResolved
+        if (-not $script:HasCliArgs) {
+            $GitHubRef = ReadRefInteractive -DefaultRef $GitHubRef
+            Set-Variable -Name GitHubRef -Scope Script -Value $GitHubRef
+        }
+        Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan
+        return
+    }
+
+    Write-Host ("Using local source: {0}" -f $SourcePath) -ForegroundColor DarkCyan
+}
+
 if (-not $script:HasCliArgs) { $menuAction = ShowMenu; if ($menuAction -eq 'Exit') { exit 0 }; $Action = $menuAction }
 switch ($Action) {
-    'Install' { $PackageSource = 'GitHub'; EnsureGitHubRefResolved; if (-not $script:HasCliArgs) { $GitHubRef = ReadRefInteractive -DefaultRef $GitHubRef }; Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan; if (-not (Confirm "Install $($script:DisplayName) to '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Install') }
+    'Install' { PreparePackageSource -Mode 'Install'; if (-not (Confirm "Install $($script:DisplayName) to '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Install') }
     'InstallGitHub' { $PackageSource = 'GitHub'; EnsureGitHubRefResolved; Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan; if (-not (Confirm "Install $($script:DisplayName) to '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Install') }
-    'Update' { $PackageSource = 'GitHub'; EnsureGitHubRefResolved; if (-not $script:HasCliArgs) { $GitHubRef = ReadRefInteractive -DefaultRef $GitHubRef }; Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan; if (-not (Confirm "Update existing $($script:DisplayName) at '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Update') }
+    'Update' { PreparePackageSource -Mode 'Update'; if (-not (Confirm "Update existing $($script:DisplayName) at '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Update') }
     'UpdateGitHub' { $PackageSource = 'GitHub'; EnsureGitHubRefResolved; Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan; if (-not (Confirm "Update existing $($script:DisplayName) at '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunInstallOrUpdate -Mode 'Update') }
     'Uninstall' { if (-not (Confirm "Uninstall $($script:DisplayName) from '$InstallPath'?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunUninstall) }
     'OpenInstallDirectory' { if (-not (Test-Path -LiteralPath $InstallPath)) { Write-Host ("Install directory not found: {0}" -f $InstallPath) -ForegroundColor Yellow; exit 1 }; Start-Process explorer.exe -ArgumentList $InstallPath; exit 0 }
     'OpenInstallLogs' { $logFile = Join-Path $InstallPath 'logs\\installer.log'; $logDir = Split-Path -Path $logFile -Parent; EnsureDir $logDir; if (Test-Path -LiteralPath $logFile) { Start-Process notepad.exe -ArgumentList $logFile } else { Start-Process explorer.exe -ArgumentList $logDir }; exit 0 }
-    'DownloadLatest' { $PackageSource = 'GitHub'; EnsureGitHubRefResolved; if (-not $script:HasCliArgs) { $GitHubRef = ReadRefInteractive -DefaultRef $GitHubRef }; Write-Host ("Using GitHub ref: {0}" -f $GitHubRef) -ForegroundColor DarkCyan; if (-not (Confirm "Download latest $($script:DisplayName) into '$PSScriptRoot' and relaunch the updated installer?")) { Write-Host 'Cancelled.' -ForegroundColor Yellow; exit 0 }; exit (RunDownloadLatest) }
     default { Write-Host "Unknown action: $Action" -ForegroundColor Red; exit 1 }
 }
 

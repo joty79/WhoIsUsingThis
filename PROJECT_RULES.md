@@ -100,10 +100,18 @@
 - Files affected: `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: Regenerated `Install.ps1` from `InstallerCore`; parser validation on generated installer; targeted scan confirmed the old literal `""` pattern is absent.
 
-### Entry - 2026-03-03 (Adopt Download Latest template action)
+### Entry - 2026-03-02 (Add background support under shared System Tools submenu)
+- Date: 2026-03-02
+- Problem: `WhoIsUsingThis` worked on files/folders but not on folder background or desktop background under the shared `System Tools` submenu.
+- Root cause: The repo only registered child verbs under `*\shell\SystemTools\shell\WhoIsUsingThis` and `Directory\shell\SystemTools\shell\WhoIsUsingThis`; no child keys existed for `Directory\Background\shell` or `DesktopBackground\Shell`.
+- Guardrail/rule: Keep `WhoIsUsingThis` child-only, but mirror the verb on supported background branches too: `HKCU\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis` and `HKCU\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis`, using `%V` as the target path argument.
+- Files affected: `WhoIsUsingThis.reg`, `Install.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation on `Install.ps1`; static review of background registry paths and command arguments.
+
+### Entry - 2026-03-03 (InstallerCore profile drift removed background support on regenerate)
 - Date: 2026-03-03
-- Problem: Local repo workflows needed the new template `DownloadLatest` action and its final menu ordering without manual installer edits.
-- Root cause: Existing generated installer snapshot predated the template addition and reorder of `DownloadLatest`.
-- Guardrail/rule: Keep `Install.ps1` regenerated from current `InstallerCore` when template action flow changes; `DownloadLatest` should remain grouped directly below `Uninstall`.
+- Problem: Running local `Install.ps1` with `-PackageSource Local` still did not install the background verbs, while manual `WhoIsUsingThis.reg` did.
+- Root cause: `Install.ps1` had been regenerated from `InstallerCore`, and the source profile there was missing the background branches. The local manual `.reg` fix existed only in this repo, not in the template/profile source of truth.
+- Guardrail/rule: When local `.reg` behavior and generated installer behavior diverge, verify the matching `InstallerCore` profile before trusting a regenerate. For this repo, background support must exist in both the manual `.reg` and the `InstallerCore` profile before regeneration.
 - Files affected: `Install.ps1`, `PROJECT_RULES.md`.
-- Validation/tests run: Regenerated `Install.ps1` from current `InstallerCore`; parser validation via `Parser::ParseFile`.
+- Validation/tests run: Static comparison of generated installer content against `WhoIsUsingThis.reg`; profile audit in `InstallerCore`.
