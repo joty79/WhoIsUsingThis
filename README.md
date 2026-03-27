@@ -215,6 +215,8 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -Action Uninstall -F
 - Cleans up legacy `WhoIsUsingThis` and `CheckLocks` keys from previous versions
 - Adds uninstall entry to Programs & Features
 
+Manual `WhoIsUsingThis.reg` import is only a registry sample. It expects the runtime files to already exist under `%LOCALAPPDATA%\WhoIsUsingThisContext\`; use `Install.ps1` for the normal install flow.
+
 ---
 
 ## � Project Structure
@@ -224,7 +226,7 @@ WhoIsUsingThis/
 ├── WhoIsUsingThis.ps1             # Main scanner (4-method lock detection)
 ├── WhoIsUsingThis.vbs             # Zero-flash VBS launcher
 ├── Install.ps1                    # Installer/updater/uninstaller
-├── WhoIsUsingThis.reg             # Static registry sample (manual import)
+├── WhoIsUsingThis.reg             # Static registry sample (manual import to %LOCALAPPDATA% install)
 ├── WhoIsUsingThis - Remove.reg    # Registry cleanup (manual removal)
 ├── assets/
 │   ├── bin/

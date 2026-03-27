@@ -115,3 +115,11 @@
 - Guardrail/rule: When local `.reg` behavior and generated installer behavior diverge, verify the matching `InstallerCore` profile before trusting a regenerate. For this repo, background support must exist in both the manual `.reg` and the `InstallerCore` profile before regeneration.
 - Files affected: `Install.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: Static comparison of generated installer content against `WhoIsUsingThis.reg`; profile audit in `InstallerCore`.
+
+### Entry - 2026-03-27 (Manual .reg must not depend on dev drive)
+- Date: 2026-03-27
+- Problem: Manual registry import could register a launcher path on `D:\...`, so the context-menu verb failed on machines/VMs that only had `C:`.
+- Root cause: `WhoIsUsingThis.reg` still contained repo-specific absolute command paths instead of pointing at the installed runtime location.
+- Guardrail/rule: Keep `WhoIsUsingThis.reg` drive-agnostic. Manual command values must target `%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs` via `REG_EXPAND_SZ`, never a workstation-specific repo path.
+- Files affected: `WhoIsUsingThis.reg`, `README.md`, `PROJECT_RULES.md`.
+- Validation/tests run: Static read-back of `.reg` command values after edit; confirmed `D:\Users\joty79\...` launcher references are absent from the repo search.

@@ -31,25 +31,61 @@ Windows Registry Editor Version 5.00
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\*\shell\SystemTools\shell\WhoIsUsingThis\command]
-@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%1\""
+; Readable command:
+; wscript.exe "%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs" "%1"
+; Stored as REG_EXPAND_SZ (hex(2)) so %LOCALAPPDATA% expands at runtime.
+@=hex(2):77,00,73,00,63,00,72,00,69,00,70,00,74,00,2e,00,65,00,78,00,65,00,20,\
+  00,22,00,25,00,4c,00,4f,00,43,00,41,00,4c,00,41,00,50,00,50,00,44,00,41,\
+  00,54,00,41,00,25,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,\
+  00,6e,00,67,00,54,00,68,00,69,00,73,00,43,00,6f,00,6e,00,74,00,65,00,78,\
+  00,74,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,00,6e,00,67,\
+  00,54,00,68,00,69,00,73,00,2e,00,76,00,62,00,73,00,22,00,20,00,22,00,25,\
+  00,31,00,22,00,00,00
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\WhoIsUsingThis]
 "MUIVerb"="Who is using this 🔎?"
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\shell\SystemTools\shell\WhoIsUsingThis\command]
-@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%1\""
+; Readable command:
+; wscript.exe "%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs" "%1"
+; Stored as REG_EXPAND_SZ (hex(2)) so %LOCALAPPDATA% expands at runtime.
+@=hex(2):77,00,73,00,63,00,72,00,69,00,70,00,74,00,2e,00,65,00,78,00,65,00,20,\
+  00,22,00,25,00,4c,00,4f,00,43,00,41,00,4c,00,41,00,50,00,50,00,44,00,41,\
+  00,54,00,41,00,25,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,\
+  00,6e,00,67,00,54,00,68,00,69,00,73,00,43,00,6f,00,6e,00,74,00,65,00,78,\
+  00,74,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,00,6e,00,67,\
+  00,54,00,68,00,69,00,73,00,2e,00,76,00,62,00,73,00,22,00,20,00,22,00,25,\
+  00,31,00,22,00,00,00
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis]
 "MUIVerb"="Who is using this 🔎?"
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\SystemTools\shell\WhoIsUsingThis\command]
-@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%V\""
+; Readable command:
+; wscript.exe "%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs" "%V"
+; Stored as REG_EXPAND_SZ (hex(2)) so %LOCALAPPDATA% expands at runtime.
+@=hex(2):77,00,73,00,63,00,72,00,69,00,70,00,74,00,2e,00,65,00,78,00,65,00,20,\
+  00,22,00,25,00,4c,00,4f,00,43,00,41,00,4c,00,41,00,50,00,50,00,44,00,41,\
+  00,54,00,41,00,25,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,\
+  00,6e,00,67,00,54,00,68,00,69,00,73,00,43,00,6f,00,6e,00,74,00,65,00,78,\
+  00,74,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,00,6e,00,67,\
+  00,54,00,68,00,69,00,73,00,2e,00,76,00,62,00,73,00,22,00,20,00,22,00,25,\
+  00,56,00,22,00,00,00
 
 [HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis]
 "MUIVerb"="Who is using this 🔎?"
 "Icon"="imageres.dll,-102"
 
 [HKEY_CURRENT_USER\Software\Classes\DesktopBackground\Shell\SystemTools\shell\WhoIsUsingThis\command]
-@="wscript.exe \"D:\\Users\\joty79\\scripts\\WhoIsUsingThis\\WhoIsUsingThis.vbs\" \"%V\""
+; Readable command:
+; wscript.exe "%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs" "%V"
+; Stored as REG_EXPAND_SZ (hex(2)) so %LOCALAPPDATA% expands at runtime.
+@=hex(2):77,00,73,00,63,00,72,00,69,00,70,00,74,00,2e,00,65,00,78,00,65,00,20,\
+  00,22,00,25,00,4c,00,4f,00,43,00,41,00,4c,00,41,00,50,00,50,00,44,00,41,\
+  00,54,00,41,00,25,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,\
+  00,6e,00,67,00,54,00,68,00,69,00,73,00,43,00,6f,00,6e,00,74,00,65,00,78,\
+  00,74,00,5c,00,57,00,68,00,6f,00,49,00,73,00,55,00,73,00,69,00,6e,00,67,\
+  00,54,00,68,00,69,00,73,00,2e,00,76,00,62,00,73,00,22,00,20,00,22,00,25,\
+  00,56,00,22,00,00,00

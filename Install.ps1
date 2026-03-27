@@ -17,6 +17,10 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Readability note:
+# - Install.ps1 is the readable source of truth for the command strings.
+# - Manual WhoIsUsingThis.reg keeps the same commands as REG_EXPAND_SZ so
+#   %LOCALAPPDATA% expands at runtime; .reg files represent that type as hex(2).
 $script:ProfileJson = @'
 {
   "tool_name": "WhoIsUsingThis",
