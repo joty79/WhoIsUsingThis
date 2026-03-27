@@ -123,3 +123,11 @@
 - Guardrail/rule: Keep `WhoIsUsingThis.reg` drive-agnostic. Manual command values must target `%LOCALAPPDATA%\WhoIsUsingThisContext\WhoIsUsingThis.vbs` via `REG_EXPAND_SZ`, never a workstation-specific repo path.
 - Files affected: `WhoIsUsingThis.reg`, `README.md`, `PROJECT_RULES.md`.
 - Validation/tests run: Static read-back of `.reg` command values after edit; confirmed `D:\Users\joty79\...` launcher references are absent from the repo search.
+
+### Entry - 2026-03-27 (VBS launcher must prefer pwsh for UTF-8 script)
+- Date: 2026-03-27
+- Problem: Context-menu click still failed even with correct install paths.
+- Root cause: `WhoIsUsingThis.vbs` launched `powershell.exe` first, and `WhoIsUsingThis.ps1` is stored as UTF-8 without BOM and contains emoji/glyph literals, which Windows PowerShell 5.1 misparsed before the script could relaunch itself into `pwsh`/WT.
+- Guardrail/rule: For this repo, the hidden VBS launcher must prefer `pwsh.exe` when available and only fall back to `powershell.exe`. Do not rely on a PS5 first-hop for UTF-8/no-BOM scripts that contain emoji or other non-ASCII literals.
+- Files affected: `WhoIsUsingThis.vbs`, `PROJECT_RULES.md`.
+- Validation/tests run: Local `Install.ps1 -Action Update -PackageSource Local`; direct `wscript.exe <installed vbs> <temp file>` smoke test confirmed the chain launched `WindowsTerminal` successfully; Explorer restart completed via installer.

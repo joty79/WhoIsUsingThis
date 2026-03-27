@@ -8,11 +8,20 @@ TargetPath = WScript.Arguments(0)
 Quote = Chr(34)
 ScriptRoot = Fso.GetParentFolderName(WScript.ScriptFullName)
 ScriptPath = ScriptRoot & "\WhoIsUsingThis.ps1"
+Engine = "powershell.exe"
+
+On Error Resume Next
+If Len(WshShell.ExpandEnvironmentStrings("%ProgramFiles%\PowerShell\7\pwsh.exe")) > 0 Then
+    If Fso.FileExists(WshShell.ExpandEnvironmentStrings("%ProgramFiles%\PowerShell\7\pwsh.exe")) Then
+        Engine = Quote & WshShell.ExpandEnvironmentStrings("%ProgramFiles%\PowerShell\7\pwsh.exe") & Quote
+    End If
+End If
+On Error GoTo 0
 
 ' Set flag so the script knows it was launched hidden
 WshEnv("WHOISUSING_HIDDEN") = "1"
 
 ' Silent launch: powershell detects WT/SafeMode and re-launches appropriately
-Command = "powershell.exe -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File " & Quote & ScriptPath & Quote & " " & Quote & TargetPath & Quote
+Command = Engine & " -NoProfile -WindowStyle Hidden -ExecutionPolicy Bypass -File " & Quote & ScriptPath & Quote & " " & Quote & TargetPath & Quote
 
 WshShell.Run Command, 0, False
