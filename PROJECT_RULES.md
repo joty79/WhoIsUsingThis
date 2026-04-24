@@ -156,3 +156,11 @@
 - Guardrail/rule: Do not use inline `if` expressions inside `Write-Host` arguments in this codebase. Compute labels first, then write them. Header content must explicitly color title/version white, subtitle dark gray, and update status with status color.
 - Files affected: `WhoIsUsingThis.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; static scan confirmed the risky inline `Write-Host (if ...)` pattern is absent in repo and installed copy; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files.
+
+### Entry - 2026-04-25 (Header column alignment with colored spans)
+- Date: 2026-04-25
+- Problem: The colored header right border rendered one column left of the top/bottom border, making the UI look randomly broken.
+- Root cause: The header was split across multiple `Write-Host -NoNewline` calls, and the content cell was padded to 76 characters while the 80-column border requires a 77-character cell after the left border+space.
+- Guardrail/rule: For bordered PowerShell UI rows split into colored spans, compute the exact printable cell width and centralize padding/truncation in a helper. Do not hand-tune `PadRight()` values independently per span.
+- Files affected: `WhoIsUsingThis.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; header column length check confirmed top/content/update rows are all 80 printable characters; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files.

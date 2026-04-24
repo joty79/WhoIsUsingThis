@@ -217,6 +217,15 @@ function ConvertTo-NativeArgumentString {
     }) -join ' '
 }
 
+function Format-AppHeaderCell {
+    param([AllowEmptyString()][string]$Text, [int]$Width = 77)
+    $value = if ($null -eq $Text) { '' } else { [string]$Text }
+    if ($value.Length -gt $Width) {
+        return $value.Substring(0, [Math]::Max(0, $Width - 3)) + '...'
+    }
+    return $value.PadRight($Width)
+}
+
 function Show-AppHeader {
     param([AllowEmptyString()][string]$Subtitle = 'Handle scan + DLL modules + ACL diagnostics')
     $updateColor = switch ($script:UpdateStatus.Status) {
@@ -231,14 +240,14 @@ function Show-AppHeader {
     Write-Host ''
     Write-Host "╔══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
     Write-Host '║ ' -ForegroundColor Cyan -NoNewline
-    Write-Host ("{0} v{1}" -f $script:AppName, $script:AppVersion).PadRight(76) -ForegroundColor White -NoNewline
+    Write-Host (Format-AppHeaderCell -Text ("{0} v{1}" -f $script:AppName, $script:AppVersion)) -ForegroundColor White -NoNewline
     Write-Host "║" -ForegroundColor Cyan
     Write-Host '║ ' -ForegroundColor Cyan -NoNewline
-    Write-Host $Subtitle.PadRight(76) -ForegroundColor DarkGray -NoNewline
+    Write-Host (Format-AppHeaderCell -Text $Subtitle) -ForegroundColor DarkGray -NoNewline
     Write-Host "║" -ForegroundColor Cyan
     Write-Host '║ ' -ForegroundColor Cyan -NoNewline
     Write-Host 'Update: ' -ForegroundColor Green -NoNewline
-    Write-Host $script:UpdateStatus.Label.PadRight(68) -ForegroundColor $updateColor -NoNewline
+    Write-Host (Format-AppHeaderCell -Text $script:UpdateStatus.Label -Width 69) -ForegroundColor $updateColor -NoNewline
     Write-Host "║" -ForegroundColor Cyan
     Write-Host "╚══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 }
