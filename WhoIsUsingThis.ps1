@@ -219,14 +219,26 @@ function ConvertTo-NativeArgumentString {
 
 function Show-AppHeader {
     param([AllowEmptyString()][string]$Subtitle = 'Handle scan + DLL modules + ACL diagnostics')
+    $updateColor = switch ($script:UpdateStatus.Status) {
+        'UpToDate' { 'Green' }
+        'UpdateAvailable' { 'Yellow' }
+        'LocalAhead' { 'Yellow' }
+        'Error' { 'Red' }
+        default { 'DarkGray' }
+    }
+
     Clear-Host
     Write-Host ''
     Write-Host "╔══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
-    Write-Host ("║ {0} v{1}" -f $script:AppName, $script:AppVersion).PadRight(79) -NoNewline
+    Write-Host '║ ' -ForegroundColor Cyan -NoNewline
+    Write-Host ("{0} v{1}" -f $script:AppName, $script:AppVersion).PadRight(76) -ForegroundColor White -NoNewline
     Write-Host "║" -ForegroundColor Cyan
-    Write-Host ("║ {0}" -f $Subtitle).PadRight(79) -NoNewline
+    Write-Host '║ ' -ForegroundColor Cyan -NoNewline
+    Write-Host $Subtitle.PadRight(76) -ForegroundColor DarkGray -NoNewline
     Write-Host "║" -ForegroundColor Cyan
-    Write-Host ("║ Update: {0}" -f $script:UpdateStatus.Label).PadRight(79) -NoNewline
+    Write-Host '║ ' -ForegroundColor Cyan -NoNewline
+    Write-Host 'Update: ' -ForegroundColor Green -NoNewline
+    Write-Host $script:UpdateStatus.Label.PadRight(68) -ForegroundColor $updateColor -NoNewline
     Write-Host "║" -ForegroundColor Cyan
     Write-Host "╚══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
 }
@@ -346,7 +358,8 @@ function Show-AppUpdateMenu {
         Write-Host '  Method:          ' -ForegroundColor Gray -NoNewline
         Write-Host $methodLabel -ForegroundColor White
         Write-Host '  Relaunch target: ' -ForegroundColor Gray -NoNewline
-        Write-Host (if ([string]::IsNullOrWhiteSpace($targetPath)) { '--' } else { $targetPath }) -ForegroundColor White
+        $relaunchTargetLabel = if ([string]::IsNullOrWhiteSpace($targetPath)) { '--' } else { $targetPath }
+        Write-Host $relaunchTargetLabel -ForegroundColor White
         Write-Host '  Last check:      ' -ForegroundColor Gray -NoNewline
         Write-Host $checkedAtLabel -ForegroundColor White
         if (-not [string]::IsNullOrWhiteSpace($script:UpdateStatus.Message)) {

@@ -148,3 +148,11 @@
 - Guardrail/rule: For this repo, `U = Update App` opens a real actions submenu. Successful relaunch must pass the same `targetPath` and use the target folder as `WorkingDirectory` so a folder/background scan resumes in the same context.
 - Files affected: `WhoIsUsingThis.ps1`, `CHANGELOG.md`, `README.md`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files; registry command readback passed for file, folder, folder background, and desktop background verbs. Interactive `Run update now` relaunch still requires manual WT/UAC confirmation to observe end-to-end.
+
+### Entry - 2026-04-25 (Runtime-only update menu expression and header colors)
+- Date: 2026-04-25
+- Problem: The `Update App` submenu printed a runtime error at `Relaunch target`, and the header still rendered too close to plain white instead of the canonical WinAppManager color treatment.
+- Root cause: `Write-Host (if (...) { ... })` parses but PowerShell treats `if` as a command in that expression position at runtime; the header wrote padded strings without explicit foreground colors for the content spans.
+- Guardrail/rule: Do not use inline `if` expressions inside `Write-Host` arguments in this codebase. Compute labels first, then write them. Header content must explicitly color title/version white, subtitle dark gray, and update status with status color.
+- Files affected: `WhoIsUsingThis.ps1`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; static scan confirmed the risky inline `Write-Host (if ...)` pattern is absent in repo and installed copy; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files.
