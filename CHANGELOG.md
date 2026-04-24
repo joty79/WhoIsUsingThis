@@ -1,0 +1,15 @@
+# Changelog
+
+All notable user-facing changes for `WhoIsUsingThis` are recorded here.
+
+## [2026-04-24]
+
+### Added
+
+- Added `app-metadata.json` as the canonical app name/version/repo metadata source.
+- Added app-side `Update App` support using the `InstallerCore` In-App Update UI Contract with the WT adapter.
+
+### Changed
+
+- Regenerated `Install.ps1` from the current `InstallerCore` profile/template.
+- Updated the scanner UI to show version/update status and offer `U = Update App` after a scan or when launched without a target.

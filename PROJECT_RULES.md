@@ -9,6 +9,7 @@
 - Keep `WhoIsUsingThis.vbs` as hidden launcher used by registry verbs.
 - In `.reg`, prefer `HKCU\Software\Classes\*\shell` and `HKCU\Software\Classes\Directory\shell`.
 - Use targeted legacy cleanup only for known old verb keys; avoid broad key deletion.
+- For `UPDATEUI`, use the InstallerCore In-App Update UI Contract with the WT adapter. This app has no persistent main menu, so expose update status in the scan header and `U = Update App` on the no-target, path-error, and final scan screens.
 
 ## Decision Log
 
@@ -131,3 +132,11 @@
 - Guardrail/rule: For this repo, the hidden VBS launcher must prefer `pwsh.exe` when available and only fall back to `powershell.exe`. Do not rely on a PS5 first-hop for UTF-8/no-BOM scripts that contain emoji or other non-ASCII literals.
 - Files affected: `WhoIsUsingThis.vbs`, `PROJECT_RULES.md`.
 - Validation/tests run: Local `Install.ps1 -Action Update -PackageSource Local`; direct `wscript.exe <installed vbs> <temp file>` smoke test confirmed the chain launched `WindowsTerminal` successfully; Explorer restart completed via installer.
+
+### Entry - 2026-04-24 (InstallerCore UPDATEUI integration)
+- Date: 2026-04-24
+- Problem: The repo had an old generated installer and no app-side `Update App` UI, so updating `InstallerCore` alone would not give the scanner the canonical progress/recent-output/relaunch behavior.
+- Root cause: `WhoIsUsingThis` predates the shared in-app update UI contract and is a context-menu scanner, not a persistent menu app.
+- Guardrail/rule: Keep `Install.ps1` generated from `InstallerCore`, deploy/verify `app-metadata.json`, and implement `Update App` in `WhoIsUsingThis.ps1` with the WT adapter: header status, progress panel, recent installer output, relaunch, and old-host exit.
+- Files affected: `WhoIsUsingThis.ps1`, `Install.ps1`, `app-metadata.json`, `CHANGELOG.md`, `.gitignore`, `README.md`, `PROJECT_RULES.md`, `InstallerCore\profiles\WhoIsUsingThis.json`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; JSON validation for `app-metadata.json` and `InstallerCore\profiles\WhoIsUsingThis.json`; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files; registry command readback passed for file, folder, folder background, and desktop background verbs.

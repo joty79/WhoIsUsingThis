@@ -5,10 +5,320 @@ param([string]$targetPath)
 $OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 | Out-Null
 
+$script:AppName = 'WhoIsUsingThis'
+$script:AppVersion = '1.0.0'
+$script:GitHubRepo = 'joty79/WhoIsUsingThis'
+$script:MetadataPath = Join-Path $PSScriptRoot 'app-metadata.json'
+$script:StatePath = Join-Path $PSScriptRoot 'state'
+$script:InstallMetaPath = Join-Path $script:StatePath 'install-meta.json'
+$script:UpdateStatusCachePath = Join-Path $script:StatePath 'app-update-status.json'
+$script:UpdateStatusCacheTtlMinutes = 30
+$script:UpdateStatus = [pscustomobject]@{
+    Status = 'Unknown'
+    Label = 'Status unavailable'
+    LatestVersion = ''
+    Branch = ''
+    Message = 'Update status has not been checked yet.'
+    CheckedAt = ''
+}
+
+function Initialize-AppMetadata {
+    if (-not (Test-Path -LiteralPath $script:MetadataPath -PathType Leaf)) { return }
+    try {
+        $metadata = Get-Content -LiteralPath $script:MetadataPath -Raw -ErrorAction Stop | ConvertFrom-Json
+        if ($metadata.PSObject.Properties['app_name'] -and -not [string]::IsNullOrWhiteSpace([string]$metadata.app_name)) {
+            $script:AppName = [string]$metadata.app_name
+        }
+        if ($metadata.PSObject.Properties['version'] -and -not [string]::IsNullOrWhiteSpace([string]$metadata.version)) {
+            $script:AppVersion = [string]$metadata.version
+        }
+        if ($metadata.PSObject.Properties['github_repo'] -and -not [string]::IsNullOrWhiteSpace([string]$metadata.github_repo)) {
+            $script:GitHubRepo = [string]$metadata.github_repo
+        }
+    }
+    catch {}
+}
+
+function ConvertTo-AppVersion {
+    param([AllowEmptyString()][string]$VersionText)
+    if ([string]::IsNullOrWhiteSpace($VersionText)) { return $null }
+    try { return [version]$VersionText.Trim() }
+    catch { return $null }
+}
+
+function New-UpdateStatus {
+    param(
+        [string]$Status = 'Unknown',
+        [AllowEmptyString()][string]$LatestVersion = '',
+        [AllowEmptyString()][string]$Branch = '',
+        [string]$Message = 'Update status has not been checked yet.',
+        [AllowEmptyString()][string]$CheckedAt = ''
+    )
+
+    $label = switch ($Status) {
+        'UpToDate' { 'Up to date' }
+        'UpdateAvailable' { if ([string]::IsNullOrWhiteSpace($LatestVersion)) { 'Update available' } else { "Update available ($LatestVersion)" } }
+        'LocalAhead' { 'Local version ahead' }
+        'Error' { 'Update check failed' }
+        default { 'Status unavailable' }
+    }
+
+    [pscustomobject]@{
+        Status = $Status
+        Label = $label
+        LatestVersion = $LatestVersion
+        Branch = $Branch
+        Message = $Message
+        CheckedAt = $CheckedAt
+    }
+}
+
+function Read-UpdateStatusCache {
+    param([switch]$AllowStale)
+    if (-not (Test-Path -LiteralPath $script:UpdateStatusCachePath -PathType Leaf)) { return $null }
+    try {
+        $cacheItem = Get-Item -LiteralPath $script:UpdateStatusCachePath -ErrorAction Stop
+        if (-not $AllowStale -and ((Get-Date) - $cacheItem.LastWriteTime).TotalMinutes -gt $script:UpdateStatusCacheTtlMinutes) {
+            return $null
+        }
+        $cache = Get-Content -LiteralPath $script:UpdateStatusCachePath -Raw -ErrorAction Stop | ConvertFrom-Json
+        return (New-UpdateStatus -Status ([string]$cache.Status) -LatestVersion ([string]$cache.LatestVersion) -Branch ([string]$cache.Branch) -Message ([string]$cache.Message) -CheckedAt ([string]$cache.CheckedAt))
+    }
+    catch { return $null }
+}
+
+function Write-UpdateStatusCache {
+    param([Parameter(Mandatory)]$Status)
+    try {
+        if (-not (Test-Path -LiteralPath $script:StatePath -PathType Container)) {
+            New-Item -Path $script:StatePath -ItemType Directory -Force | Out-Null
+        }
+        $Status | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $script:UpdateStatusCachePath -Encoding UTF8
+    }
+    catch {}
+}
+
+function Get-RemoteAppMetadata {
+    if ([string]::IsNullOrWhiteSpace($script:GitHubRepo)) { return $null }
+    foreach ($branch in @('master', 'main')) {
+        try {
+            $metadata = Invoke-RestMethod -Uri "https://raw.githubusercontent.com/$($script:GitHubRepo)/$branch/app-metadata.json" -Method Get -Headers @{ 'User-Agent' = "$($script:AppName)/$($script:AppVersion)" } -TimeoutSec 8
+            if ($null -ne $metadata) {
+                return [pscustomobject]@{ Metadata = $metadata; Branch = $branch }
+            }
+        }
+        catch {}
+    }
+    return $null
+}
+
+function Resolve-UpdateStatus {
+    param([switch]$ForceRefresh)
+    if (-not $ForceRefresh) {
+        $cached = Read-UpdateStatusCache
+        if ($null -ne $cached) {
+            $script:UpdateStatus = $cached
+            return $script:UpdateStatus
+        }
+    }
+
+    $stale = Read-UpdateStatusCache -AllowStale
+    $remote = Get-RemoteAppMetadata
+    if ($null -eq $remote) {
+        if ($null -ne $stale) {
+            $stale.Message = 'Using cached update status because GitHub could not be reached.'
+            $script:UpdateStatus = $stale
+            return $script:UpdateStatus
+        }
+        $script:UpdateStatus = New-UpdateStatus -Status 'Error' -Message 'Could not reach GitHub to check updates.' -CheckedAt ((Get-Date).ToString('s'))
+        return $script:UpdateStatus
+    }
+
+    $latestVersion = if ($remote.Metadata.PSObject.Properties['version']) { [string]$remote.Metadata.version } else { '' }
+    $localVersion = ConvertTo-AppVersion -VersionText $script:AppVersion
+    $remoteVersion = ConvertTo-AppVersion -VersionText $latestVersion
+    $statusName = 'Unknown'
+    $message = 'Update status is unavailable.'
+    if ($null -ne $localVersion -and $null -ne $remoteVersion) {
+        if ($localVersion -lt $remoteVersion) {
+            $statusName = 'UpdateAvailable'
+            $message = "Update available: v$latestVersion"
+        }
+        elseif ($localVersion -gt $remoteVersion) {
+            $statusName = 'LocalAhead'
+            $message = "Local version v$script:AppVersion is ahead of origin."
+        }
+        else {
+            $statusName = 'UpToDate'
+            $message = "App is up to date at v$latestVersion."
+        }
+    }
+
+    $script:UpdateStatus = New-UpdateStatus -Status $statusName -LatestVersion $latestVersion -Branch ([string]$remote.Branch) -Message $message -CheckedAt ((Get-Date).ToString('s'))
+    Write-UpdateStatusCache -Status $script:UpdateStatus
+    return $script:UpdateStatus
+}
+
+function Get-RecentTextFileLines {
+    param([AllowEmptyString()][string]$Path, [int]$TailCount = 10)
+    if ([string]::IsNullOrWhiteSpace($Path) -or -not (Test-Path -LiteralPath $Path -PathType Leaf)) { return @() }
+    try { return @(Get-Content -LiteralPath $Path -Tail $TailCount -ErrorAction Stop | ForEach-Object { [string]$_ }) }
+    catch { return @() }
+}
+
+function Show-AppHeader {
+    param([AllowEmptyString()][string]$Subtitle = 'Handle scan + DLL modules + ACL diagnostics')
+    Clear-Host
+    Write-Host ''
+    Write-Host "╔══════════════════════════════════════════════════════════════════════════════╗" -ForegroundColor Cyan
+    Write-Host ("║ {0} v{1}" -f $script:AppName, $script:AppVersion).PadRight(79) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    Write-Host ("║ {0}" -f $Subtitle).PadRight(79) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    Write-Host ("║ Update: {0}" -f $script:UpdateStatus.Label).PadRight(79) -NoNewline
+    Write-Host "║" -ForegroundColor Cyan
+    Write-Host "╚══════════════════════════════════════════════════════════════════════════════╝" -ForegroundColor Cyan
+}
+
+function Show-AppUpdateResultPanel {
+    param(
+        [string]$Message,
+        [ValidateSet('Info', 'Good', 'Warn', 'Error')][string]$Level = 'Info',
+        [string[]]$RecentLines = @(),
+        [switch]$AutoRestart
+    )
+    $color = switch ($Level) {
+        'Good' { 'Green' }
+        'Warn' { 'Yellow' }
+        'Error' { 'Red' }
+        default { 'Cyan' }
+    }
+    Show-AppHeader -Subtitle 'Update App'
+    Write-Host ''
+    Write-Host '◆ Update App ----------------------------------------------------------' -ForegroundColor Cyan
+    Write-Host "  $Message" -ForegroundColor $color
+    if (@($RecentLines).Count -gt 0) {
+        Write-Host ''
+        Write-Host '◆ Recent Output ------------------------------------------------------' -ForegroundColor Cyan
+        foreach ($line in @($RecentLines | Select-Object -Last 10)) {
+            $displayLine = [string]$line
+            if ($displayLine.Length -gt 118) { $displayLine = $displayLine.Substring(0, 115) + '...' }
+            Write-Host "  $displayLine" -ForegroundColor DarkGray
+        }
+    }
+    Write-Host ''
+    Write-Host '◆ Commands -----------------------------------------------------------' -ForegroundColor Cyan
+    if ($AutoRestart) {
+        Write-Host "  Restarting $script:AppName with updated files..." -ForegroundColor Green
+    }
+    else {
+        Write-Host '  ESC back' -ForegroundColor Red
+    }
+}
+
+function Get-InstallerAction {
+    $defaultInstallPath = [System.IO.Path]::GetFullPath((Join-Path $env:LOCALAPPDATA 'WhoIsUsingThisContext')).TrimEnd('\')
+    $currentRootPath = [System.IO.Path]::GetFullPath($PSScriptRoot).TrimEnd('\')
+    if ($currentRootPath -ieq $defaultInstallPath) { return 'UpdateGitHub' }
+    return 'DownloadLatest'
+}
+
+function Start-UpdatedAppHost {
+    $appPath = Join-Path $PSScriptRoot 'WhoIsUsingThis.ps1'
+    if (-not (Test-Path -LiteralPath $appPath -PathType Leaf)) { return $false }
+    $pwshCommand = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+    if ($null -eq $pwshCommand) { return $false }
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $appPath)
+    if (-not [string]::IsNullOrWhiteSpace($targetPath)) { $arguments += $targetPath }
+    $wtCommand = Get-Command wt.exe -ErrorAction SilentlyContinue
+    try {
+        if ($null -ne $wtCommand) {
+            $wtArguments = @('-w', '0', 'nt', '--title', 'Handle Scan', 'pwsh.exe') + $arguments
+            Start-Process -FilePath $wtCommand.Source -ArgumentList $wtArguments | Out-Null
+            return $true
+        }
+        Start-Process -FilePath $pwshCommand.Source -ArgumentList $arguments -WorkingDirectory $PSScriptRoot | Out-Null
+        return $true
+    }
+    catch { return $false }
+}
+
+function Invoke-AppUpdate {
+    $installerPath = Join-Path $PSScriptRoot 'Install.ps1'
+    if (-not (Test-Path -LiteralPath $installerPath -PathType Leaf)) {
+        Show-AppUpdateResultPanel -Message 'Install.ps1 was not found next to the app.' -Level 'Error'
+        return $false
+    }
+    $pwshCommand = Get-Command pwsh.exe -ErrorAction SilentlyContinue
+    if ($null -eq $pwshCommand) {
+        Show-AppUpdateResultPanel -Message 'pwsh.exe was not found.' -Level 'Error'
+        return $false
+    }
+    $action = Get-InstallerAction
+    $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $installerPath, '-Action', $action, '-Force')
+    if ($action -eq 'UpdateGitHub') { $arguments += '-NoExplorerRestart' }
+    if ($action -eq 'DownloadLatest') { $arguments += '-NoSelfRelaunch' }
+    $progressMessage = if ($action -eq 'UpdateGitHub') { 'Updating from GitHub inside the current app session...' } else { 'Updating this working copy inside the current app session...' }
+    $stdoutPath = Join-Path $env:TEMP ("WhoIsUsingThis_updater_out_{0}.log" -f [guid]::NewGuid().ToString('N'))
+    $stderrPath = Join-Path $env:TEMP ("WhoIsUsingThis_updater_err_{0}.log" -f [guid]::NewGuid().ToString('N'))
+    $installerLogPath = Join-Path $PSScriptRoot 'logs\installer.log'
+    try {
+        $process = Start-Process -FilePath $pwshCommand.Source -ArgumentList $arguments -WorkingDirectory $PSScriptRoot -RedirectStandardOutput $stdoutPath -RedirectStandardError $stderrPath -WindowStyle Hidden -PassThru -ErrorAction Stop
+        while (-not $process.HasExited) {
+            $recentLines = @((Get-RecentTextFileLines -Path $installerLogPath -TailCount 8) + (Get-RecentTextFileLines -Path $stderrPath -TailCount 3))
+            Show-AppUpdateResultPanel -Message $progressMessage -Level 'Info' -RecentLines $recentLines
+            Start-Sleep -Milliseconds 250
+        }
+        $process.Refresh()
+        $exitCode = [int]$process.ExitCode
+        $finalLines = @((Get-RecentTextFileLines -Path $installerLogPath -TailCount 8) + (Get-RecentTextFileLines -Path $stderrPath -TailCount 5))
+        if ($exitCode -le 2) {
+            Show-AppUpdateResultPanel -Message 'Update finished. Restarting the updated app host and closing this window...' -Level 'Good' -RecentLines $finalLines -AutoRestart
+            Start-Sleep -Milliseconds 900
+            if (Start-UpdatedAppHost) { exit 0 }
+            Show-AppUpdateResultPanel -Message 'Update finished, but the app could not relaunch automatically.' -Level 'Warn' -RecentLines $finalLines
+            return $false
+        }
+        Show-AppUpdateResultPanel -Message ("Update failed with exit code {0}." -f $exitCode) -Level 'Error' -RecentLines $finalLines
+        return $false
+    }
+    catch {
+        Show-AppUpdateResultPanel -Message "Could not start updater: $($_.Exception.Message)" -Level 'Error'
+        return $false
+    }
+    finally {
+        foreach ($tempPath in @($stdoutPath, $stderrPath)) {
+            try {
+                if (Test-Path -LiteralPath $tempPath -PathType Leaf) {
+                    Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+                }
+            }
+            catch {}
+        }
+    }
+}
+
+function Read-CloseOrUpdate {
+    Write-Host ''
+    Write-Host 'Press U to Update App, or any other key to close...' -ForegroundColor Yellow
+    $key = [Console]::ReadKey($true)
+    if ([string]$key.Key -eq 'U' -or [char]::ToUpperInvariant($key.KeyChar) -eq 'U') {
+        [void](Invoke-AppUpdate)
+        Write-Host ''
+        Write-Host 'Press any key to close...' -ForegroundColor Yellow
+        $null = [Console]::ReadKey($true)
+    }
+}
+
+Initialize-AppMetadata
+[void](Resolve-UpdateStatus)
+
+if ($null -eq $targetPath) { $targetPath = '' }
+
 # ---------------------------------------------------------
 # 1. Trailing Slash / Quote Cleanup
 # ---------------------------------------------------------
-if ($targetPath.EndsWith('\')) { $targetPath = $targetPath.TrimEnd('\') }
+if (-not [string]::IsNullOrWhiteSpace($targetPath) -and $targetPath.EndsWith('\')) { $targetPath = $targetPath.TrimEnd('\') }
 $targetPath = $targetPath -replace '"', ''
 
 # ---------------------------------------------------------
@@ -62,11 +372,21 @@ if ($isWT) {
 # ---------------------------------------------------------
 # 3. Basic Checks
 # ---------------------------------------------------------
+if ([string]::IsNullOrWhiteSpace($targetPath)) {
+    Show-AppHeader
+    Write-Host ''
+    Write-Host 'No target path was provided.' -ForegroundColor Yellow
+    Write-Host 'Launch from the context menu, or pass -targetPath from a terminal.' -ForegroundColor Gray
+    Read-CloseOrUpdate
+    exit
+}
+
 if (-not ([System.IO.File]::Exists($targetPath) -or [System.IO.Directory]::Exists($targetPath))) {
+    Show-AppHeader
     Write-Host "`n$($ico.ERR) Error: Path not found." -ForegroundColor Red
     Write-Host "   $targetPath" -ForegroundColor Gray
-    Write-Host "`nPress any key to close..." -ForegroundColor Yellow
-    $null = [Console]::ReadKey(); exit
+    Read-CloseOrUpdate
+    exit
 }
 
 $fileName = [System.IO.Path]::GetFileName($targetPath)
@@ -100,6 +420,7 @@ foreach ($cp in $criticalPaths) {
     }
 }
 
+Show-AppHeader
 Write-Host "`n--- Scanning: $targetPath ---" -ForegroundColor Cyan
 
 # Resolve handle.exe from bundled assets first, then fallback to PATH.
@@ -667,5 +988,4 @@ if ($directIssuesFound -or $aclIssuesFound) {
 }
 
 Write-Host ("`n" + ("=" * 40)) -ForegroundColor Gray
-Write-Host "Πάτα οποιοδήποτε πλήκτρο για να κλείσει..." -ForegroundColor Yellow
-$null = [Console]::ReadKey()
+Read-CloseOrUpdate

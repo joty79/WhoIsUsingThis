@@ -19,6 +19,7 @@
 |:-:|------|-------------|
 | 🔍 | **[Lock Scanner](#-lock-scanner)** | 4-method deep scan to find every process or permission blocking a file/folder |
 | 👻 | **[Silent Launcher](#-silent-launcher)** | Zero-flash VBS wrapper — opens in Windows Terminal with full emoji support |
+| 🔄 | **[Update App](#-update-app)** | In-app updater with header status, progress panel, recent installer output, and relaunch |
 | 📦 | **[Installer](#-installation)** | One-command setup with context menu registration and auto-updates from GitHub |
 
 ---
@@ -179,6 +180,17 @@ All paths resolved from `WScript.ScriptFullName` — no hardcoded paths.
 
 ---
 
+## 🔄 Update App
+
+`WhoIsUsingThis` uses the shared `InstallerCore` updater, but exposes it inside the scanner UI so updates are visible from the normal app session.
+
+- The header shows `WhoIsUsingThis` version and update status from `app-metadata.json`
+- The no-target screen, path-error screen, and final scan screen offer `U = Update App`
+- The update panel shows progress plus recent `logs\installer.log` output
+- After a successful update, the app starts a fresh Windows Terminal host and exits the old host
+
+---
+
 ## � Installation
 
 ### Quick Setup
@@ -226,6 +238,8 @@ WhoIsUsingThis/
 ├── WhoIsUsingThis.ps1             # Main scanner (4-method lock detection)
 ├── WhoIsUsingThis.vbs             # Zero-flash VBS launcher
 ├── Install.ps1                    # Installer/updater/uninstaller
+├── app-metadata.json              # App identity/version/repo metadata
+├── CHANGELOG.md                   # User-facing change history
 ├── WhoIsUsingThis.reg             # Static registry sample (manual import to %LOCALAPPDATA% install)
 ├── WhoIsUsingThis - Remove.reg    # Registry cleanup (manual removal)
 ├── assets/
