@@ -9,7 +9,7 @@
 - Keep `WhoIsUsingThis.vbs` as hidden launcher used by registry verbs.
 - In `.reg`, prefer `HKCU\Software\Classes\*\shell` and `HKCU\Software\Classes\Directory\shell`.
 - Use targeted legacy cleanup only for known old verb keys; avoid broad key deletion.
-- For `UPDATEUI`, use the InstallerCore In-App Update UI Contract with the WT adapter. This app has no persistent main menu, so expose update status in the scan header and `U = Update App` on the no-target, path-error, and final scan screens.
+- For `UPDATEUI`, use the InstallerCore In-App Update UI Contract with the WT adapter. This app has no persistent main menu, so expose update status in the scan header and `U = Update App` on the no-target, path-error, and final scan screens. `U` must open an `Update App` actions submenu (`Run update now`, `Refresh update status`, `Back`), not run the updater directly.
 
 ## Decision Log
 
@@ -140,3 +140,11 @@
 - Guardrail/rule: Keep `Install.ps1` generated from `InstallerCore`, deploy/verify `app-metadata.json`, and implement `Update App` in `WhoIsUsingThis.ps1` with the WT adapter: header status, progress panel, recent installer output, relaunch, and old-host exit.
 - Files affected: `WhoIsUsingThis.ps1`, `Install.ps1`, `app-metadata.json`, `CHANGELOG.md`, `.gitignore`, `README.md`, `PROJECT_RULES.md`, `InstallerCore\profiles\WhoIsUsingThis.json`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; JSON validation for `app-metadata.json` and `InstallerCore\profiles\WhoIsUsingThis.json`; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files; registry command readback passed for file, folder, folder background, and desktop background verbs.
+
+### Entry - 2026-04-24 (UPDATEUI submenu and relaunch correction)
+- Date: 2026-04-24
+- Problem: The first `UPDATEUI` pass exposed a plain `U` prompt and update progress, but missed the canonical actions submenu and did not reliably relaunch with the original target context.
+- Root cause: The scanner has no main menu, so the app-side adapter was simplified too far instead of keeping the WinAppManager `Update App` action model.
+- Guardrail/rule: For this repo, `U = Update App` opens a real actions submenu. Successful relaunch must pass the same `targetPath` and use the target folder as `WorkingDirectory` so a folder/background scan resumes in the same context.
+- Files affected: `WhoIsUsingThis.ps1`, `CHANGELOG.md`, `README.md`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files; registry command readback passed for file, folder, folder background, and desktop background verbs. Interactive `Run update now` relaunch still requires manual WT/UAC confirmation to observe end-to-end.

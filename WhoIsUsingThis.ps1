@@ -166,6 +166,57 @@ function Get-RecentTextFileLines {
     catch { return @() }
 }
 
+function Get-TargetWorkingDirectory {
+    if ([string]::IsNullOrWhiteSpace($targetPath)) { return $PSScriptRoot }
+    try {
+        if ([System.IO.Directory]::Exists($targetPath)) { return $targetPath }
+        if ([System.IO.File]::Exists($targetPath)) {
+            $parent = [System.IO.Path]::GetDirectoryName($targetPath)
+            if (-not [string]::IsNullOrWhiteSpace($parent)) { return $parent }
+        }
+    }
+    catch {}
+    return $PSScriptRoot
+}
+
+function Write-AppSection {
+    param([string]$Title)
+    Write-Host ''
+    Write-Host '◆ ' -ForegroundColor Cyan -NoNewline
+    Write-Host $Title -ForegroundColor Cyan -NoNewline
+    Write-Host (' ' + ('-' * 72)) -ForegroundColor DarkGray
+}
+
+function Read-AppConsoleKey {
+    try {
+        $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        return [pscustomobject]@{
+            VirtualKeyCode = [int]$key.VirtualKeyCode
+            Character = [char]$key.Character
+        }
+    }
+    catch {
+        $key = [Console]::ReadKey($true)
+        return [pscustomobject]@{
+            VirtualKeyCode = [int]$key.Key
+            Character = [char]$key.KeyChar
+        }
+    }
+}
+
+function ConvertTo-NativeArgumentString {
+    param([string[]]$ArgumentList)
+    @($ArgumentList | ForEach-Object {
+        $argument = [string]$_
+        if ($argument -match '[\s"]') {
+            '"' + ($argument -replace '"', '\"') + '"'
+        }
+        else {
+            $argument
+        }
+    }) -join ' '
+}
+
 function Show-AppHeader {
     param([AllowEmptyString()][string]$Subtitle = 'Handle scan + DLL modules + ACL diagnostics')
     Clear-Host
@@ -194,25 +245,23 @@ function Show-AppUpdateResultPanel {
         default { 'Cyan' }
     }
     Show-AppHeader -Subtitle 'Update App'
-    Write-Host ''
-    Write-Host '◆ Update App ----------------------------------------------------------' -ForegroundColor Cyan
+    Write-AppSection -Title 'Update App'
     Write-Host "  $Message" -ForegroundColor $color
     if (@($RecentLines).Count -gt 0) {
-        Write-Host ''
-        Write-Host '◆ Recent Output ------------------------------------------------------' -ForegroundColor Cyan
+        Write-AppSection -Title 'Recent Output'
         foreach ($line in @($RecentLines | Select-Object -Last 10)) {
             $displayLine = [string]$line
             if ($displayLine.Length -gt 118) { $displayLine = $displayLine.Substring(0, 115) + '...' }
             Write-Host "  $displayLine" -ForegroundColor DarkGray
         }
     }
-    Write-Host ''
-    Write-Host '◆ Commands -----------------------------------------------------------' -ForegroundColor Cyan
+    Write-AppSection -Title 'Commands'
     if ($AutoRestart) {
         Write-Host "  Restarting $script:AppName with updated files..." -ForegroundColor Green
     }
     else {
-        Write-Host '  ESC back' -ForegroundColor Red
+        Write-Host '  ESC ' -ForegroundColor Red -NoNewline
+        Write-Host 'back' -ForegroundColor DarkGray
     }
 }
 
@@ -230,17 +279,97 @@ function Start-UpdatedAppHost {
     if ($null -eq $pwshCommand) { return $false }
     $arguments = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $appPath)
     if (-not [string]::IsNullOrWhiteSpace($targetPath)) { $arguments += $targetPath }
+    $workingDirectory = Get-TargetWorkingDirectory
     $wtCommand = Get-Command wt.exe -ErrorAction SilentlyContinue
     try {
         if ($null -ne $wtCommand) {
-            $wtArguments = @('-w', '0', 'nt', '--title', 'Handle Scan', 'pwsh.exe') + $arguments
-            Start-Process -FilePath $wtCommand.Source -ArgumentList $wtArguments | Out-Null
+            $wtArguments = @('-w', 'new', 'nt', '--title', 'Handle Scan', 'pwsh.exe') + $arguments
+            Start-Process -FilePath $wtCommand.Source -ArgumentList (ConvertTo-NativeArgumentString -ArgumentList $wtArguments) -WorkingDirectory $workingDirectory | Out-Null
             return $true
         }
-        Start-Process -FilePath $pwshCommand.Source -ArgumentList $arguments -WorkingDirectory $PSScriptRoot | Out-Null
+        Start-Process -FilePath $pwshCommand.Source -ArgumentList (ConvertTo-NativeArgumentString -ArgumentList $arguments) -WorkingDirectory $workingDirectory | Out-Null
         return $true
     }
     catch { return $false }
+}
+
+function Show-AppUpdateMenuOptions {
+    param([string[]]$Options, [int]$SelectedIndex)
+    Write-AppSection -Title 'Actions'
+    for ($index = 0; $index -lt $Options.Count; $index++) {
+        if ($index -eq $SelectedIndex) {
+            Write-Host '  > ' -ForegroundColor White -NoNewline
+            Write-Host $Options[$index] -ForegroundColor Black -BackgroundColor Gray
+        }
+        elseif ($Options[$index] -eq 'Back') {
+            Write-Host "    $($Options[$index])" -ForegroundColor DarkGray
+        }
+        else {
+            Write-Host "    $($Options[$index])" -ForegroundColor Cyan
+        }
+    }
+}
+
+function Show-AppUpdateMenu {
+    $selectedIndex = 0
+    $options = @('Run update now', 'Refresh update status', 'Back')
+
+    while ($true) {
+        $action = Get-InstallerAction
+        $targetLabel = if ($action -eq 'DownloadLatest') { 'Workspace working copy' } else { 'Installed app copy' }
+        $methodLabel = if ($action -eq 'DownloadLatest') { 'Repo-aware working-copy update' } else { 'Installer/GitHub in-place update' }
+        $latestVersionLabel = if ([string]::IsNullOrWhiteSpace($script:UpdateStatus.LatestVersion)) { '--' } else { $script:UpdateStatus.LatestVersion }
+        $branchLabel = if ([string]::IsNullOrWhiteSpace($script:UpdateStatus.Branch)) { '--' } else { $script:UpdateStatus.Branch }
+        $checkedAtLabel = if ([string]::IsNullOrWhiteSpace($script:UpdateStatus.CheckedAt)) { '--' } else { $script:UpdateStatus.CheckedAt.Replace('T', ' ') }
+        $statusColor = switch ($script:UpdateStatus.Status) {
+            'UpToDate' { 'Green' }
+            'UpdateAvailable' { 'Yellow' }
+            'LocalAhead' { 'Yellow' }
+            'Error' { 'Red' }
+            default { 'DarkGray' }
+        }
+
+        Show-AppHeader -Subtitle 'Update App'
+        Write-AppSection -Title 'Update App'
+        Write-Host '  Current version: ' -ForegroundColor Gray -NoNewline
+        Write-Host $script:AppVersion -ForegroundColor White
+        Write-Host '  Latest version:  ' -ForegroundColor Gray -NoNewline
+        Write-Host $latestVersionLabel -ForegroundColor White
+        Write-Host '  Status:          ' -ForegroundColor Gray -NoNewline
+        Write-Host $script:UpdateStatus.Label -ForegroundColor $statusColor
+        Write-Host '  Repo:            ' -ForegroundColor Gray -NoNewline
+        Write-Host $script:GitHubRepo -ForegroundColor White -NoNewline
+        Write-Host '  |  Branch: ' -ForegroundColor DarkGray -NoNewline
+        Write-Host $branchLabel -ForegroundColor White
+        Write-Host '  Update target:   ' -ForegroundColor Gray -NoNewline
+        Write-Host $targetLabel -ForegroundColor White
+        Write-Host '  Method:          ' -ForegroundColor Gray -NoNewline
+        Write-Host $methodLabel -ForegroundColor White
+        Write-Host '  Relaunch target: ' -ForegroundColor Gray -NoNewline
+        Write-Host (if ([string]::IsNullOrWhiteSpace($targetPath)) { '--' } else { $targetPath }) -ForegroundColor White
+        Write-Host '  Last check:      ' -ForegroundColor Gray -NoNewline
+        Write-Host $checkedAtLabel -ForegroundColor White
+        if (-not [string]::IsNullOrWhiteSpace($script:UpdateStatus.Message)) {
+            Write-Host "  $($script:UpdateStatus.Message)" -ForegroundColor DarkGray
+        }
+        Show-AppUpdateMenuOptions -Options $options -SelectedIndex $selectedIndex
+        Write-Host ''
+        Write-Host '  ↑↓ navigate   Enter = select   Esc = back' -ForegroundColor DarkGray
+
+        $key = Read-AppConsoleKey
+        switch ($key.VirtualKeyCode) {
+            38 { $selectedIndex = [Math]::Max(0, $selectedIndex - 1) }
+            40 { $selectedIndex = [Math]::Min($options.Count - 1, $selectedIndex + 1) }
+            27 { return $false }
+            13 {
+                switch ($selectedIndex) {
+                    0 { return (Invoke-AppUpdate) }
+                    1 { [void](Resolve-UpdateStatus -ForceRefresh) }
+                    2 { return $false }
+                }
+            }
+        }
+    }
 }
 
 function Invoke-AppUpdate {
@@ -300,13 +429,13 @@ function Invoke-AppUpdate {
 
 function Read-CloseOrUpdate {
     Write-Host ''
-    Write-Host 'Press U to Update App, or any other key to close...' -ForegroundColor Yellow
-    $key = [Console]::ReadKey($true)
-    if ([string]$key.Key -eq 'U' -or [char]::ToUpperInvariant($key.KeyChar) -eq 'U') {
-        [void](Invoke-AppUpdate)
+    Write-Host 'U = Update App  |  any other key = close' -ForegroundColor Yellow
+    $key = Read-AppConsoleKey
+    if ($key.VirtualKeyCode -eq 85 -or [char]::ToUpperInvariant($key.Character) -eq 'U') {
+        [void](Show-AppUpdateMenu)
         Write-Host ''
         Write-Host 'Press any key to close...' -ForegroundColor Yellow
-        $null = [Console]::ReadKey($true)
+        $null = Read-AppConsoleKey
     }
 }
 

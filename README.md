@@ -186,8 +186,9 @@ All paths resolved from `WScript.ScriptFullName` — no hardcoded paths.
 
 - The header shows `WhoIsUsingThis` version and update status from `app-metadata.json`
 - The no-target screen, path-error screen, and final scan screen offer `U = Update App`
+- The update screen includes an `Actions` submenu with `Run update now`, `Refresh update status`, and `Back`
 - The update panel shows progress plus recent `logs\installer.log` output
-- After a successful update, the app starts a fresh Windows Terminal host and exits the old host
+- After a successful update, the app starts a fresh Windows Terminal host, preserves the original scan target, and exits the old host
 
 ---
 
