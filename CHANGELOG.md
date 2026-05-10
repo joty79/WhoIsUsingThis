@@ -2,6 +2,12 @@
 
 All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
+## [2026-05-11]
+
+### Fixed
+
+- Fixed installer registry writes for Unicode menu labels so `MUIVerb` keeps `Who is using this 🔎?` instead of degrading to `???` during verification.
+
 ## [2026-04-24]
 
 ### Added

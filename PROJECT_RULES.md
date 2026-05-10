@@ -164,3 +164,11 @@
 - Guardrail/rule: For bordered PowerShell UI rows split into colored spans, compute the exact printable cell width and centralize padding/truncation in a helper. Do not hand-tune `PadRight()` values independently per span.
 - Files affected: `WhoIsUsingThis.ps1`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; header column length check confirmed top/content/update rows are all 80 printable characters; local-source installer update smoke completed with exit code `0`; installed file hash readback matched repo files.
+
+### Entry - 2026-05-11 (Unicode-safe registry writes)
+- Date: 2026-05-11
+- Problem: GitHub install wrote `MUIVerb` as `Who is using this ???` and reported a registry mismatch for `HKCU\Software\Classes\*\shell\SystemTools\shell\WhoIsUsingThis`.
+- Root cause: `reg.exe add /d` received the emoji-bearing string through the native command argument path and lost Unicode characters before the value reached the registry.
+- Guardrail/rule: For installer-owned registry values, write and read back values through `Microsoft.Win32.RegistryKey` so Unicode labels and raw `REG_EXPAND_SZ` strings survive verification. Keep `reg.exe` for targeted cleanup only.
+- Files affected: `Install.ps1`, `CHANGELOG.md`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `Install.ps1`; static review of registry write/readback helpers.

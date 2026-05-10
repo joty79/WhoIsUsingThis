@@ -309,12 +309,69 @@ function RegCmd([AllowEmptyString()][string[]]$RegArgs, [switch]$IgnoreNotFound)
     throw "reg.exe failed: reg $($RegArgs -join ' ')`n$text"
 }
 function RegDel([string]$Key) { RegCmd -RegArgs @('delete', $Key, '/f') -IgnoreNotFound | Out-Null }
+function ResolveRegistryKeySpec([string]$Key) {
+    if ([string]::IsNullOrWhiteSpace($Key)) { throw 'Registry key is empty.' }
+
+    $normalizedKey = $Key.Trim()
+    if ($normalizedKey.StartsWith('Registry::', [System.StringComparison]::OrdinalIgnoreCase)) {
+        $normalizedKey = $normalizedKey.Substring('Registry::'.Length)
+    }
+
+    if ($normalizedKey.StartsWith('HKCU\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{
+            Root = [Microsoft.Win32.Registry]::CurrentUser
+            SubKey = $normalizedKey.Substring(5)
+        }
+    }
+    if ($normalizedKey.StartsWith('HKEY_CURRENT_USER\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{
+            Root = [Microsoft.Win32.Registry]::CurrentUser
+            SubKey = $normalizedKey.Substring('HKEY_CURRENT_USER\'.Length)
+        }
+    }
+    if ($normalizedKey.StartsWith('HKCR\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{
+            Root = [Microsoft.Win32.Registry]::ClassesRoot
+            SubKey = $normalizedKey.Substring(5)
+        }
+    }
+    if ($normalizedKey.StartsWith('HKEY_CLASSES_ROOT\', [System.StringComparison]::OrdinalIgnoreCase)) {
+        return [pscustomobject]@{
+            Root = [Microsoft.Win32.Registry]::ClassesRoot
+            SubKey = $normalizedKey.Substring('HKEY_CLASSES_ROOT\'.Length)
+        }
+    }
+
+    throw "Unsupported registry root in key: $Key"
+}
+function GetRegistryValueKind([string]$Type) {
+    switch ($Type.ToUpperInvariant()) {
+        'REG_SZ' { return [Microsoft.Win32.RegistryValueKind]::String }
+        'REG_EXPAND_SZ' { return [Microsoft.Win32.RegistryValueKind]::ExpandString }
+        'REG_DWORD' { return [Microsoft.Win32.RegistryValueKind]::DWord }
+        default { throw "Unsupported registry value type: $Type" }
+    }
+}
 function RegAdd([string]$Key, [string]$Name, [string]$Type, [AllowEmptyString()][string]$Value) {
     $safe = if ($Type -eq 'REG_DWORD') { if ([string]::IsNullOrWhiteSpace($Value)) { '0' } else { $Value } } else { $Value }
-    $regArgs = @('add', $Key)
-    if ($Name -eq '(default)') { $regArgs += '/ve' } else { $regArgs += @('/v', $Name) }
-    $regArgs += @('/t', $Type, '/d', $safe, '/f')
-    RegCmd -RegArgs $regArgs | Out-Null
+    $keySpec = ResolveRegistryKeySpec $Key
+    $valueName = if ($Name -eq '(default)') { '' } else { $Name }
+    $valueKind = GetRegistryValueKind $Type
+    $registryKey = $null
+    try {
+        $registryKey = $keySpec.Root.CreateSubKey($keySpec.SubKey)
+        if ($null -eq $registryKey) { throw "Could not create registry key: $Key" }
+
+        if ($valueKind -eq [Microsoft.Win32.RegistryValueKind]::DWord) {
+            $registryKey.SetValue($valueName, [int]$safe, $valueKind)
+        }
+        else {
+            $registryKey.SetValue($valueName, $safe, $valueKind)
+        }
+    }
+    finally {
+        if ($null -ne $registryKey) { $registryKey.Dispose() }
+    }
     if ($Type -in @('REG_SZ', 'REG_EXPAND_SZ') -and $Value -eq '') {
         $actual = RegGet -Key $Key -Name $Name
         if ($null -eq $actual -or $actual -ne '') {
@@ -323,13 +380,23 @@ function RegAdd([string]$Key, [string]$Name, [string]$Type, [AllowEmptyString()]
     }
 }
 function RegGet([string]$Key, [string]$Name) {
-    $q = if ($Name -eq '(default)') { RegCmd -RegArgs @('query', $Key, '/ve') -IgnoreNotFound } else { RegCmd -RegArgs @('query', $Key, '/v', $Name) -IgnoreNotFound }
-    if (-not $q) { return $null }
-    $line = $q | Where-Object { $_ -match 'REG_' -and $_ -match '^\s*(\(Default\)|\S+)\s+REG_' } | Select-Object -First 1
-    if (-not $line) { return $null }
-    $parts = ($line -split '\s{2,}') | Where-Object { $_ -ne '' }
-    if ($parts.Count -ge 3) { return [string]$parts[2] }
-    return ''
+    $keySpec = ResolveRegistryKeySpec $Key
+    $valueName = if ($Name -eq '(default)') { '' } else { $Name }
+    $registryKey = $null
+    try {
+        $registryKey = $keySpec.Root.OpenSubKey($keySpec.SubKey, $false)
+        if ($null -eq $registryKey) { return $null }
+        $valueNames = @($registryKey.GetValueNames())
+        if ($valueName -ne '' -and $valueName -notin $valueNames) { return $null }
+        if ($valueName -eq '' -and '' -notin $valueNames) { return $null }
+
+        $value = $registryKey.GetValue($valueName, $null, [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)
+        if ($null -eq $value) { return $null }
+        return [string]$value
+    }
+    finally {
+        if ($null -ne $registryKey) { $registryKey.Dispose() }
+    }
 }
 
 function CleanupRegistry {
