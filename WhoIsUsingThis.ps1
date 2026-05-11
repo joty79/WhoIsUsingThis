@@ -6,7 +6,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 chcp 65001 | Out-Null
 
 $script:AppName = 'WhoIsUsingThis'
-$script:AppVersion = '1.0.1'
+$script:AppVersion = '1.0.2'
 $script:GitHubRepo = 'joty79/WhoIsUsingThis'
 $script:MetadataPath = Join-Path $PSScriptRoot 'app-metadata.json'
 $script:StatePath = Join-Path $PSScriptRoot 'state'
@@ -559,17 +559,113 @@ function Write-AppSection {
 function Read-AppConsoleKey {
     try {
         $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+        $keyName = switch ([int]$key.VirtualKeyCode) {
+            13 { 'Enter' }
+            27 { 'Escape' }
+            38 { 'UpArrow' }
+            40 { 'DownArrow' }
+            default { [string]$key.VirtualKeyCode }
+        }
         return [pscustomobject]@{
+            Key = $keyName
             VirtualKeyCode = [int]$key.VirtualKeyCode
             Character = [char]$key.Character
         }
     }
     catch {
         $key = [Console]::ReadKey($true)
+        $keyName = switch ($key.Key) {
+            'Enter' { 'Enter' }
+            'Escape' { 'Escape' }
+            'UpArrow' { 'UpArrow' }
+            'DownArrow' { 'DownArrow' }
+            default { [string]$key.Key }
+        }
         return [pscustomobject]@{
+            Key = $keyName
             VirtualKeyCode = [int]$key.Key
             Character = [char]$key.KeyChar
         }
+    }
+}
+
+function Clear-ConsoleInputBuffer {
+    try {
+        while ([Console]::KeyAvailable) {
+            [void][Console]::ReadKey($true)
+        }
+    }
+    catch {}
+}
+
+function Set-CursorVisibleSafe {
+    param([bool]$Visible)
+    try { [Console]::CursorVisible = $Visible }
+    catch {}
+}
+
+function Write-MenuOption {
+    param(
+        [string]$Text,
+        [string]$Color = 'White',
+        [bool]$Selected = $false
+    )
+
+    if ($Selected) {
+        Write-Host "  ❯ $Text" -ForegroundColor White -BackgroundColor DarkBlue
+        return
+    }
+
+    Write-Host "    $Text" -ForegroundColor $Color
+}
+
+function Show-ArrowMenu {
+    param(
+        [string]$Title,
+        [object[]]$Options,
+        [int]$SelectedIndex = 0,
+        [string]$HelpText = '↑↓ navigate   Enter = select   Esc = skip'
+    )
+
+    Write-AppSection -Title $Title
+    for ($index = 0; $index -lt $Options.Count; $index++) {
+        $option = $Options[$index]
+        $color = if ($option.PSObject.Properties['Color']) { [string]$option.Color } else { 'White' }
+        Write-MenuOption -Text ([string]$option.Label) -Color $color -Selected ($index -eq $SelectedIndex)
+    }
+    Write-Host ''
+    Write-Host "  $HelpText" -ForegroundColor DarkGray
+}
+
+function Read-ArrowMenuChoice {
+    param(
+        [string]$Title,
+        [object[]]$Options,
+        [string]$HelpText = '↑↓ navigate   Enter = select   Esc = skip'
+    )
+
+    $selectedIndex = 0
+    Set-CursorVisibleSafe -Visible $false
+    try {
+        while ($true) {
+            $menuTop = [Console]::CursorTop
+            Show-ArrowMenu -Title $Title -Options $Options -SelectedIndex $selectedIndex -HelpText $HelpText
+            Write-Host "$([char]27)[J" -NoNewline
+
+            $key = Read-AppConsoleKey
+            switch ($key.Key) {
+                'UpArrow' { $selectedIndex = [Math]::Max(0, $selectedIndex - 1) }
+                'DownArrow' { $selectedIndex = [Math]::Min($Options.Count - 1, $selectedIndex + 1) }
+                'Escape' { return $null }
+                'Enter' { return $Options[$selectedIndex] }
+            }
+
+            try { [Console]::SetCursorPosition(0, $menuTop) }
+            catch {}
+        }
+    }
+    finally {
+        Set-CursorVisibleSafe -Visible $true
     }
 }
 
@@ -977,16 +1073,93 @@ function Read-CloseOrUpdate {
 }
 
 function Read-ScanActionChoice {
-    Write-Host "   [A] Τερματισμός ΟΛΩΝ  |  [S] Παράλειψη  |  [C] Επιλογή ένα-ένα  |  [U] Update App" -ForegroundColor Cyan
-    $choice = (Read-Host "   Επιλογή").ToUpperInvariant()
-    if ($choice -eq 'U') {
+    $options = @(
+        [pscustomobject]@{ Label = 'Terminate all'; Action = 'TerminateAll'; Color = 'Red' },
+        [pscustomobject]@{ Label = 'Choose one-by-one'; Action = 'ChooseOneByOne'; Color = 'Cyan' },
+        [pscustomobject]@{ Label = 'Skip'; Action = 'Skip'; Color = 'DarkGray' },
+        [pscustomobject]@{ Label = 'Update App'; Action = 'UpdateApp'; Color = 'Yellow' }
+    )
+
+    $choice = Read-ArrowMenuChoice -Title 'Actions' -Options $options -HelpText '↑↓ navigate   Enter = select   Esc = skip'
+    if ($null -eq $choice) { return 'Skip' }
+    if ([string]$choice.Action -eq 'UpdateApp') {
         [void](Show-AppUpdateMenu)
         Show-AppHeader
         Write-Host "`n--- Scanning: $targetPath ---" -ForegroundColor Cyan
         Write-Host "   Update App closed. Continuing scan with this step skipped." -ForegroundColor DarkGray
-        return 'S'
+        return 'Skip'
     }
-    return $choice
+    return [string]$choice.Action
+}
+
+function Stop-LockingProcess {
+    param(
+        [Parameter(Mandatory)][object]$ProcessInfo,
+        [switch]$AllowTerminal
+    )
+
+    if ($ProcessInfo.PSObject.Properties['IsTerminal'] -and [bool]$ProcessInfo.IsTerminal -and -not $AllowTerminal) {
+        Write-Host "   $($ico.WARN) Skipped terminal: $($ProcessInfo.Name) (PID: $($ProcessInfo.PID))" -ForegroundColor Magenta
+        return $false
+    }
+
+    try {
+        Stop-Process -Id ([int]$ProcessInfo.PID) -Force -ErrorAction Stop
+        Write-Host "   $($ico.KILL) Terminated: $($ProcessInfo.Name) (PID: $($ProcessInfo.PID))" -ForegroundColor Red
+        return $true
+    }
+    catch {
+        Write-Host "   $($ico.ERR) Failed: $($ProcessInfo.Name) (PID: $($ProcessInfo.PID))" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Invoke-TerminateAllProcesses {
+    param([object[]]$ProcessList)
+
+    $terminalCount = 0
+    foreach ($proc in @($ProcessList)) {
+        if ($proc.PSObject.Properties['IsTerminal'] -and [bool]$proc.IsTerminal) {
+            $terminalCount++
+        }
+        [void](Stop-LockingProcess -ProcessInfo $proc)
+    }
+    if ($terminalCount -gt 0) {
+        Write-Host "   $($ico.TIP) $terminalCount terminal process(es) skipped. Use Choose one-by-one if you really want to terminate them." -ForegroundColor DarkYellow
+    }
+}
+
+function Invoke-ChooseProcessMenu {
+    param(
+        [string]$Title,
+        [object[]]$ProcessList
+    )
+
+    $remaining = [System.Collections.Generic.List[object]]::new()
+    foreach ($proc in @($ProcessList)) { [void]$remaining.Add($proc) }
+
+    while ($remaining.Count -gt 0) {
+        $options = @(
+            for ($index = 0; $index -lt $remaining.Count; $index++) {
+                $proc = $remaining[$index]
+                $terminalLabel = if ($proc.PSObject.Properties['IsTerminal'] -and [bool]$proc.IsTerminal) { ' [terminal]' } else { '' }
+                $lockedLabel = if ($proc.PSObject.Properties['LockedFile'] -and -not [string]::IsNullOrWhiteSpace([string]$proc.LockedFile)) { " — $($proc.LockedFile)" } else { '' }
+                [pscustomobject]@{
+                    Label = "$($proc.Name) (PID: $($proc.PID))$terminalLabel$lockedLabel"
+                    Index = $index
+                    Color = if ($terminalLabel) { 'Magenta' } else { 'Yellow' }
+                }
+            }
+        )
+
+        $choice = Read-ArrowMenuChoice -Title $Title -Options $options -HelpText '↑↓ navigate   Enter = terminate selected   Esc = skip remaining'
+        if ($null -eq $choice) { return }
+
+        $selectedIndex = [int]$choice.Index
+        $selectedProcess = $remaining[$selectedIndex]
+        [void](Stop-LockingProcess -ProcessInfo $selectedProcess -AllowTerminal)
+        $remaining.RemoveAt($selectedIndex)
+    }
 }
 
 Initialize-AppMetadata
@@ -1072,7 +1245,7 @@ $fileName = [System.IO.Path]::GetFileName($targetPath)
 $isFolder = [System.IO.Directory]::Exists($targetPath)
 
 # ---------------------------------------------------------
-# Critical System Paths — Extra warning πριν takeown/delete
+# Critical System Paths — extra warning before takeown/delete
 # ---------------------------------------------------------
 $criticalPaths = @(
     'C:\Windows\WinSxS'
@@ -1128,18 +1301,17 @@ if (-not $handleExePath) {
 }
 
 # =========================================================
-# ΜΕΘΟΔΟΣ 1: Handle.exe (Standard Locks)
+# Method 1: Handle.exe (standard locks)
 # =========================================================
-Write-Host "$($ico.N1)  Έλεγχος Handles (Standard Locks)..." -ForegroundColor Gray
+Write-Host "$($ico.N1)  Checking handles (standard locks)..." -ForegroundColor Gray
 
-# Μόνο ακριβής αναζήτηση (Χωρίς Spam)
+# Exact search only.
 $handleResults = & $handleExePath -a -u "$targetPath" 2>$null
 
 if ($handleResults -match "pid:") {
     $processedPids = @()
     $lockList = @()
 
-    # Συλλογή unique PIDs σε λίστα
     $lines = $handleResults | Where-Object { $_ -match "pid:\s+\d+" } | Select-Object -Unique
     
     foreach ($line in $lines) {
@@ -1157,10 +1329,9 @@ if ($handleResults -match "pid:") {
         }
     }
 
-    # --- Εμφάνιση πλήρους λίστας ---
     $termCount = ($lockList | Where-Object IsTerminal).Count
     $appCount  = $lockList.Count - $termCount
-    Write-Host "   Βρέθηκαν $($lockList.Count) processes ($appCount apps, $termCount terminals):" -ForegroundColor White
+    Write-Host "   Found $($lockList.Count) process(es) ($appCount apps, $termCount terminals):" -ForegroundColor White
     Write-Host ""
 
     $idx = 0
@@ -1173,58 +1344,27 @@ if ($handleResults -match "pid:") {
         }
     }
 
-    # --- Μενού Ενεργειών ---
     Write-Host ""
     $handleChoice = Read-ScanActionChoice
 
     switch ($handleChoice) {
-        "A" {
-            foreach ($proc in $lockList) {
-                if ($proc.IsTerminal) {
-                    Write-Host "   $($ico.WARN)  Skipped terminal: $($proc.Name) (PID: $($proc.PID))" -ForegroundColor Magenta
-                    continue
-                }
-                try {
-                    Stop-Process -Id $proc.PID -Force -ErrorAction Stop
-                    Write-Host "   $($ico.KILL) $($proc.Name) (PID: $($proc.PID))" -ForegroundColor Red
-                } catch {
-                    Write-Host "   $($ico.ERR) Αποτυχία: $($proc.Name) (PID: $($proc.PID))" -ForegroundColor Red
-                }
-            }
-            if ($termCount -gt 0) {
-                Write-Host "   $($ico.TIP) $termCount terminal(s) παραλείφθηκαν — χρήσε [C] αν θες να τα κλείσεις" -ForegroundColor DarkYellow
-            }
-        }
-        "C" {
-            foreach ($proc in $lockList) {
-                $label = if ($proc.IsTerminal) { "$($ico.TERM) Terminal:" } else { "$($ico.HIT)" }
-                $ans = Read-Host "   $label $($proc.Name) (PID: $($proc.PID)) — Τερματισμός; (Y/N)"
-                if ($ans -eq "Y") {
-                    try {
-                        Stop-Process -Id $proc.PID -Force -ErrorAction Stop
-                        Write-Host "      $($ico.KILL) Τερματίστηκε." -ForegroundColor Red
-                    } catch {
-                        Write-Host "      $($ico.ERR) Αποτυχία." -ForegroundColor Red
-                    }
-                }
-            }
-        }
+        "TerminateAll" { Invoke-TerminateAllProcesses -ProcessList $lockList }
+        "ChooseOneByOne" { Invoke-ChooseProcessMenu -Title 'Choose Process' -ProcessList $lockList }
         default {
-            Write-Host "   Παράλειψη." -ForegroundColor DarkGray
+            Write-Host "   Skipped." -ForegroundColor DarkGray
         }
     }
 } else {
-    Write-Host "   (Κανένα standard file handle)" -ForegroundColor DarkGray
+    Write-Host "   (No standard file handle found)" -ForegroundColor DarkGray
 }
 
 # =========================================================
-# ΜΕΘΟΔΟΣ 2: Module/Deep Scan (DLLs & Libraries)
+# Method 2: Module/deep scan (DLLs and libraries)
 # =========================================================
 if (-not $isFolder) {
-    # --- ΠΕΡΙΠΤΩΣΗ Α: ΑΡΧΕΙΟ (Tasklist Module Scan) ---
-    Write-Host "`n$($ico.N2)  Έλεγχος Loaded Modules (DLLs)..." -ForegroundColor Gray
+    Write-Host "`n$($ico.N2)  Checking loaded modules (DLLs)..." -ForegroundColor Gray
     
-    # Χρήση Regex Escape για αρχεία με [ ]
+    # Use Regex Escape for file names with [ ]
     $moduleOutput = tasklist /m [Regex]::Escape($fileName) 2>$null
     $modList = @()
     
@@ -1237,7 +1377,7 @@ if (-not $isFolder) {
     }
 
     if ($modList.Count -gt 0) {
-        Write-Host "   Βρέθηκαν $($modList.Count) processes με loaded module:" -ForegroundColor White
+        Write-Host "   Found $($modList.Count) process(es) with loaded module:" -ForegroundColor White
         Write-Host ""
         $idx = 0
         foreach ($m in $modList) {
@@ -1248,45 +1388,21 @@ if (-not $isFolder) {
         $modChoice = Read-ScanActionChoice
 
         switch ($modChoice) {
-            "A" {
-                foreach ($m in $modList) {
-                    try {
-                        Stop-Process -Id $m.PID -Force -ErrorAction Stop
-                        Write-Host "   $($ico.KILL) $($m.Name) (PID: $($m.PID))" -ForegroundColor Red
-                    } catch {
-                        Write-Host "   $($ico.ERR) Αποτυχία: $($m.Name) (PID: $($m.PID))" -ForegroundColor Red
-                    }
-                }
-            }
-            "C" {
-                foreach ($m in $modList) {
-                    $ans = Read-Host "   $($ico.HIT) $($m.Name) (PID: $($m.PID)) — Τερματισμός; (Y/N)"
-                    if ($ans -eq "Y") {
-                        try {
-                            Stop-Process -Id $m.PID -Force -ErrorAction Stop
-                            Write-Host "      $($ico.KILL) Τερματίστηκε." -ForegroundColor Red
-                        } catch {
-                            Write-Host "      $($ico.ERR) Αποτυχία." -ForegroundColor Red
-                        }
-                    }
-                }
-            }
-            default { Write-Host "   Παράλειψη." -ForegroundColor DarkGray }
+            "TerminateAll" { Invoke-TerminateAllProcesses -ProcessList $modList }
+            "ChooseOneByOne" { Invoke-ChooseProcessMenu -Title 'Choose Process' -ProcessList $modList }
+            default { Write-Host "   Skipped." -ForegroundColor DarkGray }
         }
-    } else { Write-Host "   (Κανένα loaded module)" -ForegroundColor DarkGray }
+    } else { Write-Host "   (No loaded module found)" -ForegroundColor DarkGray }
 
 } else {
-    # --- ΠΕΡΙΠΤΩΣΗ Β: ΦΑΚΕΛΟΣ (Deep Memory Scan) ---
-    # Πιάνει Everything, AIMP, Upscayl που κλειδώνουν υποφάκελους
-    Write-Host "`n$($ico.N2)  Deep Scan Φακέλου (Αναζήτηση σε όλα τα Processes)..." -ForegroundColor Gray
-    Write-Host "   $($ico.WAIT) Σάρωση μνήμης..." -ForegroundColor DarkGray
+    Write-Host "`n$($ico.N2)  Deep folder scan (searching all processes)..." -ForegroundColor Gray
+    Write-Host "   $($ico.WAIT) Scanning process memory..." -ForegroundColor DarkGray
     
     $deepList = @()
     $processes = Get-Process -ErrorAction SilentlyContinue
     
     foreach ($proc in $processes) {
         try {
-            # Ψάχνουμε αν το process έχει φορτώσει κάτι από τον φάκελό μας
             $matchingModule = $proc.Modules | Where-Object { $_.FileName -and $_.FileName.StartsWith($targetPath, [System.StringComparison]::OrdinalIgnoreCase) } | Select-Object -First 1
             if ($matchingModule) {
                 $deepList += [PSCustomObject]@{
@@ -1299,7 +1415,7 @@ if (-not $isFolder) {
     }
 
     if ($deepList.Count -gt 0) {
-        Write-Host "   Βρέθηκαν $($deepList.Count) processes με locked modules:" -ForegroundColor White
+        Write-Host "   Found $($deepList.Count) process(es) with locked modules:" -ForegroundColor White
         Write-Host ""
         $idx = 0
         foreach ($d in $deepList) {
@@ -1311,40 +1427,19 @@ if (-not $isFolder) {
         $deepChoice = Read-ScanActionChoice
 
         switch ($deepChoice) {
-            "A" {
-                foreach ($d in $deepList) {
-                    try {
-                        Stop-Process -Id $d.PID -Force -ErrorAction Stop
-                        Write-Host "   $($ico.KILL) $($d.Name) (PID: $($d.PID))" -ForegroundColor Red
-                    } catch {
-                        Write-Host "   $($ico.ERR) Αποτυχία: $($d.Name) (PID: $($d.PID))" -ForegroundColor Red
-                    }
-                }
-            }
-            "C" {
-                foreach ($d in $deepList) {
-                    $ans = Read-Host "   $($ico.HIT) $($d.Name) (PID: $($d.PID)) — Τερματισμός; (Y/N)"
-                    if ($ans -eq "Y") {
-                        try {
-                            Stop-Process -Id $d.PID -Force -ErrorAction Stop
-                            Write-Host "      $($ico.KILL) Τερματίστηκε." -ForegroundColor Red
-                        } catch {
-                            Write-Host "      $($ico.ERR) Αποτυχία." -ForegroundColor Red
-                        }
-                    }
-                }
-            }
-            default { Write-Host "   Παράλειψη." -ForegroundColor DarkGray }
+            "TerminateAll" { Invoke-TerminateAllProcesses -ProcessList $deepList }
+            "ChooseOneByOne" { Invoke-ChooseProcessMenu -Title 'Choose Process' -ProcessList $deepList }
+            default { Write-Host "   Skipped." -ForegroundColor DarkGray }
         }
-    } else { Write-Host "   (Κανένα κλειδωμένο module σε υποφάκελο)" -ForegroundColor DarkGray }
+    } else { Write-Host "   (No locked module found under this folder)" -ForegroundColor DarkGray }
 }
 
 # =========================================================
-# ΜΕΘΟΔΟΣ 3: ACL & Ownership Analysis
-# Πιάνει: TrustedInstaller, SYSTEM, ACL-blocked αρχεία,
+# Method 3: ACL & Ownership Analysis
+# Catches: TrustedInstaller, SYSTEM, ACL-blocked files,
 #          CBS InFlight (WinSxS pending updates)
 # =========================================================
-Write-Host "`n$($ico.N3)  Έλεγχος Ownership & ACL Permissions..." -ForegroundColor Gray
+Write-Host "`n$($ico.N3)  Checking ownership and ACL permissions..." -ForegroundColor Gray
 
 $aclIssuesFound = $false
 
@@ -1358,7 +1453,7 @@ try {
 
     if ($isSystemOwned) {
         Write-Host "   $($ico.LOCK) Owner: $owner" -ForegroundColor Red
-        Write-Host "      Ο φάκελος/αρχείο ανήκει στα Windows (TrustedInstaller/SYSTEM)" -ForegroundColor DarkYellow
+        Write-Host "      This path belongs to Windows (TrustedInstaller/SYSTEM)" -ForegroundColor DarkYellow
         $aclIssuesFound = $true
     } elseif ($isAdminOwned) {
         Write-Host "   $($ico.OK) Owner: $owner (Administrators)" -ForegroundColor Green
@@ -1366,7 +1461,7 @@ try {
         Write-Host "   $($ico.INFO)  Owner: $owner" -ForegroundColor Cyan
     }
 
-    # --- Access Rights Check (μπορούμε πραγματικά να σβήσουμε;) ---
+    # --- Access Rights Check (can we really delete it?) ---
     $currentUser = [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
     $hasDeleteAccess = $false
     foreach ($rule in $acl.Access) {
@@ -1378,24 +1473,24 @@ try {
         }
     }
     if (-not $hasDeleteAccess) {
-        Write-Host "   $($ico.DENY) Ο τρέχων χρήστης ΔΕΝ έχει Delete permission!" -ForegroundColor Red
+        Write-Host "   $($ico.DENY) The current user does NOT have Delete permission!" -ForegroundColor Red
         $aclIssuesFound = $true
     }
 
-    # --- Subfolder ACL Scan (μόνο για φακέλους) ---
+    # --- Subfolder ACL Scan (folders only) ---
     if ($isFolder) {
-        Write-Host "   $($ico.FIND) Σάρωση sub-items για Access Denied..." -ForegroundColor DarkGray
+        Write-Host "   $($ico.FIND) Scanning sub-items for Access Denied..." -ForegroundColor DarkGray
         $deniedCount = 0
         $deniedSamples = @()
-        $scanCap = 500          # Αρκετό για diagnostic — αποφυγή multi-minute scan
+        $scanCap = 500          # Enough for diagnostics while avoiding multi-minute scans
         $scanned = 0
         $hitCap = $false
 
-        # ⚡ Streaming enumeration + Owner-only ACL (αντί dir /b /s + Get-Acl full)
+        # Streaming enumeration + Owner-only ACL instead of dir /b /s + full Get-Acl
         $enumOpts = [System.IO.EnumerationOptions]::new()
         $enumOpts.RecurseSubdirectories = $true
         $enumOpts.IgnoreInaccessible = $true
-        $enumOpts.AttributesToSkip = [System.IO.FileAttributes]::None   # Σκανάρει και Hidden/System
+        $enumOpts.AttributesToSkip = [System.IO.FileAttributes]::None   # Scan Hidden/System too
 
         foreach ($item in [System.IO.Directory]::EnumerateFileSystemEntries($targetPath, '*', $enumOpts)) {
             $scanned++
@@ -1405,7 +1500,7 @@ try {
             if ($scanned -ge $scanCap) { $hitCap = $true; break }
 
             try {
-                # Ζητάμε ΜΟΝΟ Owner (παραλείπουμε DACL/SACL/Group — πολύ πιο γρήγορο)
+                # Request only Owner and skip DACL/SACL/Group for speed
                 if ([System.IO.Directory]::Exists($item)) {
                     $sec = [System.IO.DirectoryInfo]::new($item).GetAccessControl(
                         [System.Security.AccessControl.AccessControlSections]::Owner
@@ -1415,44 +1510,44 @@ try {
                         [System.Security.AccessControl.AccessControlSections]::Owner
                     )
                 }
-                # ⚡ SID comparison αντί NTAccount — αποφυγή IdentityNotMappedException (false positives)
-                # S-1-5-18 = SYSTEM | S-1-5-80-* = NT SERVICE (TrustedInstaller κλπ)
+                # SID comparison instead of NTAccount to avoid IdentityNotMappedException false positives
+                # S-1-5-18 = SYSTEM | S-1-5-80-* = NT SERVICE (TrustedInstaller, etc.)
                 $ownerSid = $sec.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
                 if ($ownerSid -match '^S-1-5-18$|^S-1-5-80-') {
                     $deniedCount++
                     if ($deniedSamples.Count -lt 3) {
-                        # Resolve σε όνομα μόνο για display (best-effort)
+                        # Resolve to a display name only (best effort)
                         try { $displayName = $sec.GetOwner([System.Security.Principal.NTAccount]).Value }
                         catch { $displayName = $ownerSid }
                         $deniedSamples += "      → $item (Owner: $displayName)"
                     }
                 }
             } catch [System.UnauthorizedAccessException] {
-                # Μόνο πραγματικό Access Denied — όχι unrelated exceptions
+                # Only real Access Denied, not unrelated exceptions
                 $deniedCount++
                 if ($deniedSamples.Count -lt 3) { $deniedSamples += "      → $item (Access Denied)" }
             } catch {
-                # Αγνοούμε: long paths, corrupt ACL, orphaned SID κλπ — ΔΕΝ είναι access issues
+                # Ignore long paths, corrupt ACL, orphaned SID, etc.; they are not access issues
             }
         }
         Write-Progress -Activity "ACL Scan" -Completed
 
         if ($deniedCount -gt 0) {
-            $countLabel = if ($hitCap) { "τουλάχιστον $deniedCount (σάρωση: πρώτα $scanCap items)" } else { "$deniedCount" }
-            Write-Host "   $($ico.DENY) Βρέθηκαν $countLabel αρχεία/φάκελοι με restricted access:" -ForegroundColor Red
+            $countLabel = if ($hitCap) { "at least $deniedCount (scanned first $scanCap items)" } else { "$deniedCount" }
+            Write-Host "   $($ico.DENY) Found $countLabel files/folders with restricted access:" -ForegroundColor Red
             foreach ($s in $deniedSamples) { Write-Host $s -ForegroundColor DarkYellow }
-            if ($deniedCount -gt 3) { Write-Host "      ... και $($deniedCount - 3) ακόμα" -ForegroundColor DarkGray }
+            if ($deniedCount -gt 3) { Write-Host "      ... and $($deniedCount - 3) more" -ForegroundColor DarkGray }
             $aclIssuesFound = $true
         } else {
-            Write-Host "   $($ico.OK) Όλα τα sub-items έχουν κανονικά permissions ($scanned scanned)" -ForegroundColor Green
+            Write-Host "   $($ico.OK) All sub-items have normal permissions ($scanned scanned)" -ForegroundColor Green
         }
     }
 
     # --- CBS / WinSxS InFlight Detection ---
     if ($targetPath -match "WinSxS\\Temp\\InFlight|WinSxS\\Temp\\PendingDeletes|WinSxS\\Temp\\PendingRenames") {
         Write-Host "`n   $($ico.WARN)  CBS INFLIGHT DETECTED!" -ForegroundColor Magenta
-        Write-Host "      Αυτός ο φάκελος περιέχει pending Windows Update components." -ForegroundColor DarkYellow
-        Write-Host "      Τα αρχεία δεν κλειδώνονται από process — ανήκουν στον TrustedInstaller." -ForegroundColor DarkYellow
+        Write-Host "      This folder contains pending Windows Update components." -ForegroundColor DarkYellow
+        Write-Host "      The files are not locked by a process; they belong to TrustedInstaller." -ForegroundColor DarkYellow
 
         # Check Windows Update & TrustedInstaller service status
         $wuStatus = (Get-Service wuauserv -ErrorAction SilentlyContinue).Status
@@ -1462,32 +1557,32 @@ try {
     }
 
 } catch {
-    Write-Host "   $($ico.ERR) Αδυναμία ανάγνωσης ACL: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "   $($ico.ERR) Could not read ACL: $($_.Exception.Message)" -ForegroundColor Red
     $aclIssuesFound = $true
 }
 
 # =========================================================
-# ΜΕΘΟΔΟΣ 4: Direct Access Test & Deep Diagnostics
-# Πιάνει: Hard Links, CBS Pending, WRP, I/O Errors
-#          Πραγματική δοκιμή πρόσβασης (όχι θεωρητική)
+# Method 4: Direct Access Test & Deep Diagnostics
+# Catches: Hard Links, CBS Pending, WRP, I/O Errors
+#          Real access test, not only theoretical checks
 # =========================================================
 Write-Host "`n$($ico.N4)  Direct Access Test & Deep Diagnostics..." -ForegroundColor Gray
 
 $directIssuesFound = $false
 $diagResults = @()
 
-# --- 4A: Πραγματική Δοκιμή Διαγραφής (σε ένα αρχείο) ---
+# --- 4A: Real delete/access test on one file ---
 if ($isFolder) {
-    # Βρες ένα αρχείο-δείγμα μέσα στο φάκελο για test
+    # Find one sample file inside the folder for testing
     $testFile = cmd /c "dir /b /s /a-d `"$targetPath`" 2>nul" 2>$null | Select-Object -First 1
 } else {
     $testFile = $targetPath
 }
 
 if ($testFile) {
-    Write-Host "   $($ico.TEST) Δοκιμή πρόσβασης: $([System.IO.Path]::GetFileName($testFile))" -ForegroundColor DarkGray
+    Write-Host "   $($ico.TEST) Access test: $([System.IO.Path]::GetFileName($testFile))" -ForegroundColor DarkGray
 
-    # Test 1: Μπορούμε να ανοίξουμε το αρχείο;
+    # Test 1: Can we open the file?
     try {
         $stream = [System.IO.File]::Open($testFile, [System.IO.FileMode]::Open, [System.IO.FileAccess]::ReadWrite, [System.IO.FileShare]::None)
         $stream.Close()
@@ -1501,63 +1596,63 @@ if ($testFile) {
         Write-Host "   $($ico.DENY) File Access BLOCKED!" -ForegroundColor Red
         Write-Host "      Error: $errMsg" -ForegroundColor DarkYellow
         
-        # Αναγνώριση γνωστών HResult codes
+        # Recognize known HResult codes
         switch ($hResult) {
-            -2147024891 { $diagResults += "ACCESS_DENIED (0x80070005) — Permissions ή WRP block" }
-            -2147024864 { $diagResults += "SHARING_VIOLATION (0x80070020) — Άλλο process χρησιμοποιεί το αρχείο" }
+            -2147024891 { $diagResults += "ACCESS_DENIED (0x80070005) — permissions or WRP block" }
+            -2147024864 { $diagResults += "SHARING_VIOLATION (0x80070020) — another process is using the file" }
             -2147024858 { $diagResults += "LOCK_VIOLATION (0x80070021) — Kernel-level file lock" }
-            -2147024809 { $diagResults += "INVALID_PARAMETER — Πρόβλημα path ή reparse point" }
+            -2147024809 { $diagResults += "INVALID_PARAMETER — path problem or reparse point" }
             default      { $diagResults += "HResult: 0x$([Convert]::ToString([uint32]$hResult, 16).ToUpper())" }
         }
         $directIssuesFound = $true
     }
 
     # Test 2: Hard Links Check
-    Write-Host "   $($ico.LINK) Έλεγχος Hard Links..." -ForegroundColor DarkGray
+    Write-Host "   $($ico.LINK) Checking hard links..." -ForegroundColor DarkGray
     $hlResult = cmd /c "fsutil hardlink list `"$testFile`" 2>&1"
     if ($hlResult -and ($hlResult | Measure-Object).Count -gt 1) {
         $hlCount = ($hlResult | Measure-Object).Count
         Write-Host "   $($ico.WARN)  Hard Links Detected! ($hlCount links)" -ForegroundColor Magenta
         $hlResult | Select-Object -First 3 | ForEach-Object { Write-Host "      → $_" -ForegroundColor DarkYellow }
-        if ($hlCount -gt 3) { Write-Host "      ... και $($hlCount - 3) ακόμα" -ForegroundColor DarkGray }
-        $diagResults += "HARD_LINKS — Το αρχείο έχει $hlCount hard links (WinSxS component store)"
+        if ($hlCount -gt 3) { Write-Host "      ... and $($hlCount - 3) more" -ForegroundColor DarkGray }
+        $diagResults += "HARD_LINKS — the file has $hlCount hard links (WinSxS component store)"
         $directIssuesFound = $true
     } elseif ($hlResult -match "Access is denied|Error") {
         Write-Host "   $($ico.WARN)  fsutil: $hlResult" -ForegroundColor Red
         $directIssuesFound = $true
     } else {
-        Write-Host "   $($ico.OK) Μόνο 1 link (κανονικό αρχείο)" -ForegroundColor Green
+        Write-Host "   $($ico.OK) Only 1 link (normal file)" -ForegroundColor Green
     }
 } else {
-    Write-Host "   (Κανένα αρχείο για test)" -ForegroundColor DarkGray
+    Write-Host "   (No file available for test)" -ForegroundColor DarkGray
 }
 
 # --- 4B: CBS Pending Transaction Check ---
 if ($targetPath -match "WinSxS|InFlight|PendingDeletes") {
-    Write-Host "   $($ico.CBS) Έλεγχος CBS Pending Transactions..." -ForegroundColor DarkGray
+    Write-Host "   $($ico.CBS) Checking CBS pending transactions..." -ForegroundColor DarkGray
     
     $pendingXml = "C:\Windows\WinSxS\pending.xml"
     $rebootPending = "C:\Windows\WinSxS\reboot.xml"
     $cbsLogDir = "C:\Windows\Logs\CBS"
     
     if (Test-Path $pendingXml) {
-        Write-Host "   $($ico.WARN)  pending.xml FOUND — Υπάρχει ημιτελής CBS transaction!" -ForegroundColor Red
-        $diagResults += "CBS_PENDING — Ημιτελές Windows Update operation"
+        Write-Host "   $($ico.WARN)  pending.xml FOUND — unfinished CBS transaction detected!" -ForegroundColor Red
+        $diagResults += "CBS_PENDING — unfinished Windows Update operation"
         $directIssuesFound = $true
     }
     if (Test-Path $rebootPending) {
         Write-Host "   $($ico.WARN)  reboot.xml FOUND — Pending reboot required!" -ForegroundColor Red
-        $diagResults += "REBOOT_PENDING — Χρειάζεται restart για ολοκλήρωση"
+        $diagResults += "REBOOT_PENDING — restart is required to finish"
         $directIssuesFound = $true
     }
     
-    # Πρόσφατα CBS errors
+    # Recent CBS errors
     if (Test-Path $cbsLogDir) {
         $cbsLog = Get-ChildItem "$cbsLogDir\CBS.log" -ErrorAction SilentlyContinue
         if ($cbsLog) {
             $recentErrors = cmd /c "findstr /i /c:`"Error`" /c:`"Failed`" `"$($cbsLog.FullName)`" 2>nul" | Select-Object -Last 3
             if ($recentErrors) {
-                Write-Host "   $($ico.LOG) Πρόσφατα CBS Errors:" -ForegroundColor DarkYellow
+                Write-Host "   $($ico.LOG) Recent CBS errors:" -ForegroundColor DarkYellow
                 $recentErrors | ForEach-Object { Write-Host "      $_" -ForegroundColor DarkGray }
             }
         }
@@ -1569,78 +1664,78 @@ try {
     $itemInfo = Get-Item -LiteralPath $targetPath -Force -ErrorAction Stop
     if ($itemInfo.Attributes -band [System.IO.FileAttributes]::ReparsePoint) {
         Write-Host "   $($ico.WARN)  REPARSE POINT detected! (Junction/Symlink)" -ForegroundColor Magenta
-        $diagResults += "REPARSE_POINT — Symlink ή Junction point"
+        $diagResults += "REPARSE_POINT — symlink or junction point"
         $directIssuesFound = $true
     }
 } catch { }
 
-# --- Τελική Διάγνωση & Λύσεις ---
+# --- Final Diagnosis & Solutions ---
 if ($directIssuesFound -or $aclIssuesFound) {
-    Write-Host "`n   ─── Διάγνωση ───" -ForegroundColor Cyan
+    Write-Host "`n   --- Diagnosis ---" -ForegroundColor Cyan
     foreach ($diag in $diagResults) {
         Write-Host "   $($ico.DOT) $diag" -ForegroundColor Yellow
     }
 
-    Write-Host "`n   ─── Προτεινόμενη Λύση ───" -ForegroundColor Cyan
+    Write-Host "`n   --- Suggested Solution ---" -ForegroundColor Cyan
 
     if ($diagResults -match "SHARING_VIOLATION|LOCK_VIOLATION") {
-        Write-Host "   $($ico.TIP) Κάποιο process κρατάει το αρχείο ανοιχτό (δεν εμφανίζεται στο handle.exe)" -ForegroundColor Yellow
-        Write-Host "   $($ico.TIP) Δοκίμασε: Restart Explorer ή κλείσε εφαρμογές indexing (Everything, Search)" -ForegroundColor White
+        Write-Host "   $($ico.TIP) A process is holding the file open but did not appear in handle.exe" -ForegroundColor Yellow
+        Write-Host "   $($ico.TIP) Try restarting Explorer or closing indexing apps (Everything, Search)" -ForegroundColor White
     }
 
     if ($diagResults -match "HARD_LINKS") {
-        Write-Host "   $($ico.TIP) Τα hard links ανήκουν στο WinSxS Component Store" -ForegroundColor Yellow
+        Write-Host "   $($ico.TIP) These hard links belong to the WinSxS Component Store" -ForegroundColor Yellow
         Write-Host "      DISM /Online /Cleanup-Image /StartComponentCleanup" -ForegroundColor White
-        Write-Host "      Ή: DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase" -ForegroundColor DarkGray
+        Write-Host "      Or: DISM /Online /Cleanup-Image /StartComponentCleanup /ResetBase" -ForegroundColor DarkGray
     }
 
     if ($diagResults -match "CBS_PENDING|REBOOT_PENDING") {
-        Write-Host "   $($ico.TIP) Κάνε RESTART πρώτα — μετά δοκίμασε ξανά" -ForegroundColor Yellow
-        Write-Host "      Αν μετά το restart ο φάκελος υπάρχει ακόμα:" -ForegroundColor DarkGray
+        Write-Host "   $($ico.TIP) Restart first, then try again" -ForegroundColor Yellow
+        Write-Host "      If the folder still exists after restart:" -ForegroundColor DarkGray
         Write-Host "      DISM /Online /Cleanup-Image /RestoreHealth" -ForegroundColor White
     }
 
     if ($targetPath -match "WinSxS") {
-        Write-Host "   $($ico.TIP) Takeown + Unlock (Ξεκλείδωμα):" -ForegroundColor Yellow
+        Write-Host "   $($ico.TIP) Takeown + Unlock:" -ForegroundColor Yellow
         Write-Host "      takeown /F `"$targetPath`" /R /A /D Y" -ForegroundColor White
         Write-Host "      icacls `"$targetPath`" /grant Administrators:F /T /C" -ForegroundColor White
     } elseif (-not ($diagResults -match "SHARING_VIOLATION|LOCK_VIOLATION|HARD_LINKS|CBS_PENDING")) {
-        Write-Host "   $($ico.TIP) Τρέξε σε elevated prompt:" -ForegroundColor Green
+        Write-Host "   $($ico.TIP) Run in an elevated prompt:" -ForegroundColor Green
         Write-Host "      takeown /F `"$targetPath`" /R /A /D Y" -ForegroundColor White
         Write-Host "      icacls `"$targetPath`" /grant Administrators:F /T /C" -ForegroundColor White
     }
 
-    # Προσφορά αυτόματης εκτέλεσης takeown
+    # Offer automatic takeown
     $proceedWithFix = $false
 
     if ($isCriticalPath) {
-        # ⛔ EXTRA WARNING για κρίσιμα system paths
+        # Extra warning for critical system paths
         Write-Host ""
         Write-Host "   $($ico.DENY)$($ico.DENY)$($ico.DENY) CRITICAL SYSTEM PATH DETECTED $($ico.DENY)$($ico.DENY)$($ico.DENY)" -ForegroundColor Red
-        Write-Host "   Αυτός ο φάκελος είναι κρίσιμος για τη λειτουργία των Windows!" -ForegroundColor Red
-        Write-Host "   Η αλλαγή ownership/permissions μπορεί να προκαλέσει:" -ForegroundColor Red
-        Write-Host "      → Αδυναμία εκκίνησης (unbootable system)" -ForegroundColor DarkRed
-        Write-Host "      → Αποτυχία Windows Update" -ForegroundColor DarkRed
-        Write-Host "      → Κατεστραμμένο Component Store" -ForegroundColor DarkRed
+        Write-Host "   This folder is critical for Windows." -ForegroundColor Red
+        Write-Host "   Changing ownership/permissions can cause:" -ForegroundColor Red
+        Write-Host "      -> Boot failure (unbootable system)" -ForegroundColor DarkRed
+        Write-Host "      -> Windows Update failure" -ForegroundColor DarkRed
+        Write-Host "      -> Corrupted Component Store" -ForegroundColor DarkRed
         Write-Host "      → Blue Screen of Death (BSOD)" -ForegroundColor DarkRed
         Write-Host ""
-        Write-Host "   $($ico.TIP) Αν θες να καθαρίσεις WinSxS, χρησιμοποίησε αντ' αυτού:" -ForegroundColor Yellow
+        Write-Host "   $($ico.TIP) If you want to clean WinSxS, use this instead:" -ForegroundColor Yellow
         Write-Host "      DISM /Online /Cleanup-Image /StartComponentCleanup" -ForegroundColor White
         Write-Host ""
-        Write-Host "   Γράψε CONFIRM (κεφαλαία) για συνέχεια  |  Enter ή οτιδήποτε άλλο = Ακύρωση" -ForegroundColor Red
-        $confirmInput = Read-Host "   Επιλογή"
+        Write-Host "   Type CONFIRM (uppercase) to continue  |  Enter or anything else = cancel" -ForegroundColor Red
+        $confirmInput = Read-Host "   Choice"
         if ($confirmInput -ceq "CONFIRM") {
             $proceedWithFix = $true
         } else {
-            Write-Host "   Ακυρώθηκε. Σωστή επιλογή!" -ForegroundColor Green
+            Write-Host "   Cancelled. Good choice." -ForegroundColor Green
         }
     } else {
-        $autoFix = Read-Host "`n      Θέλεις αυτόματο Takeown + Grant Access τώρα; (Y/N)"
+        $autoFix = Read-Host "`n      Run automatic Takeown + Grant Access now? (Y/N)"
         if ($autoFix -eq "Y") { $proceedWithFix = $true }
     }
 
     if ($proceedWithFix) {
-        Write-Host "      $($ico.DOT) Εκτέλεση takeown..." -ForegroundColor Gray
+        Write-Host "      $($ico.DOT) Running takeown..." -ForegroundColor Gray
         $tkResult = & takeown.exe /F $targetPath /R /A /D Y 2>&1
         if ($LASTEXITCODE -eq 0) {
             Write-Host "      $($ico.OK) Ownership OK" -ForegroundColor Green
@@ -1648,18 +1743,18 @@ if ($directIssuesFound -or $aclIssuesFound) {
             Write-Host "      $($ico.WARN) Takeown: $tkResult" -ForegroundColor Red
         }
 
-        Write-Host "      $($ico.DOT) Εκτέλεση icacls..." -ForegroundColor Gray
+        Write-Host "      $($ico.DOT) Running icacls..." -ForegroundColor Gray
         $icResult = & icacls.exe $targetPath /grant "Administrators:F" /T /C /Q 2>&1
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "      $($ico.OK) Permissions Granted — Μπορείς πλέον να το διαχειριστείς χειροκίνητα" -ForegroundColor Green
+            Write-Host "      $($ico.OK) Permissions granted. You can now manage it manually." -ForegroundColor Green
         } else {
             Write-Host "      $($ico.WARN) Icacls: $icResult" -ForegroundColor Red
         }
     }
 } else {
-    Write-Host "   $($ico.OK) Direct Access OK — Κανένα deep πρόβλημα" -ForegroundColor Green
+    Write-Host "   $($ico.OK) Direct Access OK — no deep issue found" -ForegroundColor Green
     if (-not $aclIssuesFound) {
-        Write-Host "`n   $($ico.OK) Ownership & Permissions OK — Κανένα ACL πρόβλημα" -ForegroundColor Green
+        Write-Host "`n   $($ico.OK) Ownership & Permissions OK — no ACL issue found" -ForegroundColor Green
     }
 }
 

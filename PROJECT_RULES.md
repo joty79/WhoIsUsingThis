@@ -188,3 +188,11 @@
 - Guardrail/rule: Every scan action prompt that can pause user input for lock handling must include `[U] Update App` and route to the same update submenu.
 - Files affected: `WhoIsUsingThis.ps1`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; static prompt probe confirmed the shared scan action prompt contains `[U] Update App`, routes to `Show-AppUpdateMenu`, and the old `[A]`/`[S]`/`[C]`-only prompt strings are absent.
+
+### Entry - 2026-05-11 (WinAppManager-style scan action menus)
+- Date: 2026-05-11
+- Problem: The lock-action prompt still used letter shortcuts and mixed Greek/English labels, unlike the arrow-key main menu style used by WinAppManager.
+- Root cause: The scanner flow predated the shared arrow menu pattern and only later gained a bolted-on `Update App` shortcut.
+- Guardrail/rule: For lock-action pauses, use an arrow menu in this order: `Terminate all`, `Choose one-by-one`, `Skip`, `Update App`. Keep menu labels in English. `Choose one-by-one` must open an arrow process picker where `Enter` terminates the selected process and `Esc` skips the remaining processes in that scan stage.
+- Files affected: `WhoIsUsingThis.ps1`, `app-metadata.json`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; `git diff --check`; static probes confirmed scan action order, absence of old `[A]`/`[S]`/`[C]` action labels in current app/docs text, and no Greek visible UI strings remain in `WhoIsUsingThis.ps1`, `README.md`, or `CHANGELOG.md`; local-source installer update smoke and installed hash/readback verification completed.

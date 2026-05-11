@@ -2,6 +2,15 @@
 
 All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
+## [2026-05-11] - 1.0.2
+
+### Changed
+
+- Replaced lock-action letter prompts with WinAppManager-style arrow menus.
+- Changed scan action order to `Terminate all`, `Choose one-by-one`, `Skip`, `Update App`.
+- Changed lock-action labels from mixed Greek/English to English.
+- Changed the one-by-one process picker to an arrow submenu where `Enter` terminates the selected process and `Esc` skips the remaining processes in that scan stage.
+
 ## [2026-05-11] - 1.0.1
 
 ### Changed

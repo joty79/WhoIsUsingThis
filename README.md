@@ -79,22 +79,23 @@ Every method runs automatically in sequence. At the end, the tool provides a **t
 At each scan stage, when locking processes are found:
 
 ```
-[A] Kill ALL        — terminates all non-terminal processes
-[S] Skip            — move on to next scan stage
-[C] Choose one-by-one — decide per process (Y/N)
+Terminate all       — terminates all non-terminal processes
+Choose one-by-one   — opens an arrow process picker
+Skip                — move on to next scan stage
+Update App          — opens the in-app update submenu
 ```
 
-Terminal processes (`pwsh`, `cmd`, `wt`, `conhost`) are **auto-skipped** when using `[A]` to prevent killing your own session. Use `[C]` to explicitly target them if needed.
+Terminal processes (`pwsh`, `cmd`, `wt`, `conhost`) are **auto-skipped** when using `Terminate all` to prevent killing your own session. Use `Choose one-by-one` to explicitly target them if needed. In the process picker, `Enter` terminates the selected process and `Esc` skips the remaining processes in that scan stage.
 
 ### Critical System Path Protection
 
 When targeting paths like `C:\Windows\WinSxS`, `C:\Windows\System32`, or other critical directories, the auto-fix prompt requires typing **`CONFIRM`** (case-sensitive) instead of just `Y`:
 
 ```
-🚫🚫🚫 CRITICAL SYSTEM PATH DETECTED 🚫🚫�
-Αυτός ο φάκελος είναι κρίσιμος για τη λειτουργία των Windows!
+🚫🚫🚫 CRITICAL SYSTEM PATH DETECTED 🚫🚫🚫
+This folder is critical for Windows.
 
-Γράψε CONFIRM (κεφαλαία) για συνέχεια  |  Enter = Ακύρωση
+Type CONFIRM (uppercase) to continue  |  Enter = cancel
 ```
 
 ### Usage
@@ -186,7 +187,8 @@ All paths resolved from `WScript.ScriptFullName` — no hardcoded paths.
 
 - The header shows `WhoIsUsingThis` version and update status from `app-metadata.json`
 - The no-target screen, path-error screen, and final scan screen offer `U = Update App`
-- Lock-action prompts also offer `[U] Update App`, so the updater is reachable even when a scan stops on a locking process
+- Lock-action prompts use an arrow menu: `Terminate all`, `Choose one-by-one`, `Skip`, `Update App`
+- `Choose one-by-one` opens an arrow process picker where `Enter` terminates the selected process and `Esc` skips the rest of that scan stage
 - The update screen includes an `Actions` submenu with `Run update now`, `Refresh update status`, and `Back`
 - The update panel shows local/latest version, local/latest commit, source kind, dirty state, branch, and status message
 - Installed copies compare `state\install-meta.json` `github_commit` against the latest remote commit, so same-version newer commits still show as updates
