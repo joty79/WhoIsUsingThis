@@ -508,6 +508,20 @@ function Resolve-UpdateStatus {
             $message = "App is up to date with GitHub $($remote.Branch) at v$latestVersion."
         }
     }
+    elseif (
+        [string]::IsNullOrWhiteSpace($latestVersion) -and
+        -not [string]::IsNullOrWhiteSpace($localCommit) -and
+        -not [string]::IsNullOrWhiteSpace($latestCommit)
+    ) {
+        if ($localCommit -ne $latestCommit) {
+            $statusName = 'UpdateAvailable'
+            $message = "Update available from GitHub $($remote.Branch): latest commit is $(Get-ShortGitCommitText -Commit $latestCommit); local is $(Get-ShortGitCommitText -Commit $localCommit)."
+        }
+        else {
+            $statusName = 'UpToDate'
+            $message = "App is up to date with GitHub $($remote.Branch) at commit $(Get-ShortGitCommitText -Commit $latestCommit)."
+        }
+    }
 
     $script:UpdateStatus = New-UpdateStatus -Status $statusName -LocalVersion $script:AppVersion -LatestVersion $latestVersion -LocalCommit $localCommit -LatestCommit $latestCommit -SourceKind $sourceKind -HasLocalChanges $hasLocalChanges -Repo ([string]$remote.Repo) -Branch ([string]$remote.Branch) -Message $message -CheckedAt ((Get-Date).ToString('s'))
     Write-UpdateStatusCache -Status $script:UpdateStatus
