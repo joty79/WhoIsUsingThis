@@ -976,6 +976,19 @@ function Read-CloseOrUpdate {
     }
 }
 
+function Read-ScanActionChoice {
+    Write-Host "   [A] Τερματισμός ΟΛΩΝ  |  [S] Παράλειψη  |  [C] Επιλογή ένα-ένα  |  [U] Update App" -ForegroundColor Cyan
+    $choice = (Read-Host "   Επιλογή").ToUpperInvariant()
+    if ($choice -eq 'U') {
+        [void](Show-AppUpdateMenu)
+        Show-AppHeader
+        Write-Host "`n--- Scanning: $targetPath ---" -ForegroundColor Cyan
+        Write-Host "   Update App closed. Continuing scan with this step skipped." -ForegroundColor DarkGray
+        return 'S'
+    }
+    return $choice
+}
+
 Initialize-AppMetadata
 [void](Resolve-UpdateStatus)
 
@@ -1162,8 +1175,7 @@ if ($handleResults -match "pid:") {
 
     # --- Μενού Ενεργειών ---
     Write-Host ""
-    Write-Host "   [A] Τερματισμός ΟΛΩΝ  |  [S] Παράλειψη  |  [C] Επιλογή ένα-ένα" -ForegroundColor Cyan
-    $handleChoice = (Read-Host "   Επιλογή").ToUpper()
+    $handleChoice = Read-ScanActionChoice
 
     switch ($handleChoice) {
         "A" {
@@ -1233,8 +1245,7 @@ if (-not $isFolder) {
             Write-Host "   [$idx] $($ico.HIT) $($m.Name) (PID: $($m.PID))" -ForegroundColor Yellow
         }
         Write-Host ""
-        Write-Host "   [A] Τερματισμός ΟΛΩΝ  |  [S] Παράλειψη  |  [C] Επιλογή ένα-ένα" -ForegroundColor Cyan
-        $modChoice = (Read-Host "   Επιλογή").ToUpper()
+        $modChoice = Read-ScanActionChoice
 
         switch ($modChoice) {
             "A" {
@@ -1297,8 +1308,7 @@ if (-not $isFolder) {
             Write-Host "       Locked: $($d.LockedFile)" -ForegroundColor DarkGray
         }
         Write-Host ""
-        Write-Host "   [A] Τερματισμός ΟΛΩΝ  |  [S] Παράλειψη  |  [C] Επιλογή ένα-ένα" -ForegroundColor Cyan
-        $deepChoice = (Read-Host "   Επιλογή").ToUpper()
+        $deepChoice = Read-ScanActionChoice
 
         switch ($deepChoice) {
             "A" {

@@ -180,3 +180,11 @@
 - Guardrail/rule: `WhoIsUsingThis` update status must track local/latest version, local/latest commit, source kind, and dirty state. Installed copies compare `state\install-meta.json` `github_commit` with the latest remote commit; git working copies update only with `git fetch` + fast-forward and refuse dirty workspaces; non-git portable copies may use `DownloadLatest -NoSelfRelaunch`; stale cached `UpToDate` must never be reused after a failed fresh remote check.
 - Files affected: `WhoIsUsingThis.ps1`, `app-metadata.json`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
 - Validation/tests run: Regenerated `Install.ps1` from corrected `InstallerCore` template; PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; JSON validation for `app-metadata.json` and `InstallerCore\profiles\WhoIsUsingThis.json`; local-source installer update smoke completed with exit code `0`; installed file hash/readback matched repo files; registry readback preserved Unicode `MUIVerb`; targeted probes confirmed stale cached `UpToDate` is not reused after remote failure and dirty git workspaces are refused.
+
+### Entry - 2026-05-11 (Update submenu must appear in scan action prompts)
+- Date: 2026-05-11
+- Problem: The scan header showed update status, but when a locking process was found the visible `[A]`, `[S]`, `[C]` prompt had no update entry.
+- Root cause: `Update App` was wired only through final/no-target/path-error screens, not the mid-scan action prompts.
+- Guardrail/rule: Every scan action prompt that can pause user input for lock handling must include `[U] Update App` and route to the same update submenu.
+- Files affected: `WhoIsUsingThis.ps1`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
+- Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; static prompt probe confirmed the shared scan action prompt contains `[U] Update App`, routes to `Show-AppUpdateMenu`, and the old `[A]`/`[S]`/`[C]`-only prompt strings are absent.

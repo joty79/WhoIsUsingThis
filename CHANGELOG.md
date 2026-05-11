@@ -6,6 +6,7 @@ All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
 ### Changed
 
+- Added `[U] Update App` to active scan action prompts so the update submenu is available while handle/module/deep-scan choices are on screen.
 - Bumped `app-metadata.json` to `1.0.1` for the commit-aware `Update App` behavior change.
 - Made `Update App` status commit-aware with local/latest version, local/latest commit, source kind, and dirty workspace state.
 - Changed git working-copy updates to use `git fetch` + fast-forward only and refuse dirty workspaces.

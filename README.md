@@ -186,6 +186,7 @@ All paths resolved from `WScript.ScriptFullName` — no hardcoded paths.
 
 - The header shows `WhoIsUsingThis` version and update status from `app-metadata.json`
 - The no-target screen, path-error screen, and final scan screen offer `U = Update App`
+- Lock-action prompts also offer `[U] Update App`, so the updater is reachable even when a scan stops on a locking process
 - The update screen includes an `Actions` submenu with `Run update now`, `Refresh update status`, and `Back`
 - The update panel shows local/latest version, local/latest commit, source kind, dirty state, branch, and status message
 - Installed copies compare `state\install-meta.json` `github_commit` against the latest remote commit, so same-version newer commits still show as updates
