@@ -172,3 +172,11 @@
 - Guardrail/rule: For installer-owned registry values, write and read back values through `Microsoft.Win32.RegistryKey` so Unicode labels and raw `REG_EXPAND_SZ` strings survive verification. Keep `reg.exe` for targeted cleanup only.
 - Files affected: `Install.ps1`, `CHANGELOG.md`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `Install.ps1`; static review of registry write/readback helpers.
+
+### Entry - 2026-05-11 (Commit-aware Update App status)
+- Date: 2026-05-11
+- Problem: The app-side `Update App` status compared only metadata versions, so same-version newer commits and stale cached `UpToDate` results could hide real updates.
+- Root cause: The first WT adapter implementation predated the commit-aware `InstallerCore` update status contract and treated repo copies as archive overlays.
+- Guardrail/rule: `WhoIsUsingThis` update status must track local/latest version, local/latest commit, source kind, and dirty state. Installed copies compare `state\install-meta.json` `github_commit` with the latest remote commit; git working copies update only with `git fetch` + fast-forward and refuse dirty workspaces; non-git portable copies may use `DownloadLatest -NoSelfRelaunch`; stale cached `UpToDate` must never be reused after a failed fresh remote check.
+- Files affected: `WhoIsUsingThis.ps1`, `app-metadata.json`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
+- Validation/tests run: Regenerated `Install.ps1` from corrected `InstallerCore` template; PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; JSON validation for `app-metadata.json` and `InstallerCore\profiles\WhoIsUsingThis.json`; local-source installer update smoke completed with exit code `0`; installed file hash/readback matched repo files; registry readback preserved Unicode `MUIVerb`; targeted probes confirmed stale cached `UpToDate` is not reused after remote failure and dirty git workspaces are refused.

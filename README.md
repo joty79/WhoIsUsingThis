@@ -19,7 +19,7 @@
 |:-:|------|-------------|
 | 🔍 | **[Lock Scanner](#-lock-scanner)** | 4-method deep scan to find every process or permission blocking a file/folder |
 | 👻 | **[Silent Launcher](#-silent-launcher)** | Zero-flash VBS wrapper — opens in Windows Terminal with full emoji support |
-| 🔄 | **[Update App](#-update-app)** | In-app updater with header status, progress panel, recent installer output, and relaunch |
+| 🔄 | **[Update App](#-update-app)** | Commit-aware in-app updater with source status, progress panel, recent output, and relaunch |
 | 📦 | **[Installer](#-installation)** | One-command setup with context menu registration and auto-updates from GitHub |
 
 ---
@@ -187,6 +187,10 @@ All paths resolved from `WScript.ScriptFullName` — no hardcoded paths.
 - The header shows `WhoIsUsingThis` version and update status from `app-metadata.json`
 - The no-target screen, path-error screen, and final scan screen offer `U = Update App`
 - The update screen includes an `Actions` submenu with `Run update now`, `Refresh update status`, and `Back`
+- The update panel shows local/latest version, local/latest commit, source kind, dirty state, branch, and status message
+- Installed copies compare `state\install-meta.json` `github_commit` against the latest remote commit, so same-version newer commits still show as updates
+- Git working copies update with `git fetch` + fast-forward only and refuse dirty workspaces
+- Non-git portable copies use `DownloadLatest -NoSelfRelaunch`, so the scanner owns progress and relaunch
 - The update panel shows progress plus recent `logs\installer.log` output
 - After a successful update, the app starts a fresh Windows Terminal host, preserves the original scan target, and exits the old host
 

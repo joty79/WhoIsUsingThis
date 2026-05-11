@@ -2,6 +2,17 @@
 
 All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
+## [2026-05-11] - 1.0.1
+
+### Changed
+
+- Bumped `app-metadata.json` to `1.0.1` for the commit-aware `Update App` behavior change.
+- Made `Update App` status commit-aware with local/latest version, local/latest commit, source kind, and dirty workspace state.
+- Changed git working-copy updates to use `git fetch` + fast-forward only and refuse dirty workspaces.
+- Kept installed-copy updates on `UpdateGitHub` while comparing `state\install-meta.json` `github_commit` against the latest remote commit.
+- Kept non-git portable-copy updates on `DownloadLatest -NoSelfRelaunch` so the scanner owns progress and relaunch.
+- Prevented stale cached `UpToDate` status from being reused when a fresh remote check fails.
+
 ## [2026-05-11]
 
 ### Fixed
