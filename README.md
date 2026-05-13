@@ -100,7 +100,7 @@ Type CONFIRM (uppercase) to continue  |  Enter = cancel
 
 ### Usage
 
-**From context menu** — *Right-click any file or folder → System Tools → Who is using this 🔎?*
+**From context menu** — *Right-click any file or folder → System Tools → Windows Utilities → Who is using this?*
 
 **From terminal:**
 
@@ -228,9 +228,9 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File .\Install.ps1 -Action Uninstall -F
 
 - Copies runtime files to `%LOCALAPPDATA%\WhoIsUsingThisContext\`
 - Bundles `assets\bin\handle.exe` and `assets\icons\WhoIsUsingThis.ico`
-- Registers context menu entries under the shared **System Tools** submenu:
-  - `*\shell\SystemTools\shell\WhoIsUsingThis` — files
-  - `Directory\shell\SystemTools\shell\WhoIsUsingThis` — folders
+- Registers context menu entries under **System Tools → Windows Utilities**:
+  - `*\shell\SystemTools\shell\WindowsUtilities\shell\WhoIsUsingThis` — files
+  - `Directory\shell\SystemTools\shell\WindowsUtilities\shell\WhoIsUsingThis` — folders
   - `Directory\Background\shell\...` + `DesktopBackground\Shell\...` — backgrounds
 - Cleans up legacy `WhoIsUsingThis` and `CheckLocks` keys from previous versions
 - Adds uninstall entry to Programs & Features

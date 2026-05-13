@@ -196,3 +196,12 @@
 - Guardrail/rule: For lock-action pauses, use an arrow menu in this order: `Terminate all`, `Choose one-by-one`, `Skip`, `Update App`. Keep menu labels in English. `Choose one-by-one` must open an arrow process picker where `Enter` terminates the selected process and `Esc` skips the remaining processes in that scan stage.
 - Files affected: `WhoIsUsingThis.ps1`, `app-metadata.json`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`.
 - Validation/tests run: PowerShell parser validation for `WhoIsUsingThis.ps1` and `Install.ps1`; `git diff --check`; static probes confirmed scan action order, absence of old `[A]`/`[S]`/`[C]` action labels in current app/docs text, and no Greek visible UI strings remain in `WhoIsUsingThis.ps1`, `README.md`, or `CHANGELOG.md`; local-source installer update smoke and installed hash/readback verification completed.
+
+### Entry - 2026-05-14 (Windows Utilities category move)
+
+- Date: 2026-05-14
+- Problem: `Who is using this?` was grouped under the shared `Explorer` category, which was too narrow for ownership/lock-inspection style utilities.
+- Root cause: The shared SystemTools category name was chosen before the file-utility set expanded.
+- Guardrail/rule: `WhoIsUsingThis` remains child-only, but its generated installer now targets `SystemTools\shell\WindowsUtilities\shell\WhoIsUsingThis`. Keep old `Explorer` child paths in cleanup during migration.
+- Files affected: `Install.ps1`, `app-metadata.json`, `CHANGELOG.md`, `PROJECT_RULES.md`, `D:\Users\joty79\scripts\InstallerCore\profiles\WhoIsUsingThis.json`.
+- Validation/tests run: Regenerated `Install.ps1` from `InstallerCore`; parser validation passed for generated installer.
