@@ -205,3 +205,12 @@
 - Guardrail/rule: `WhoIsUsingThis` remains child-only, but its generated installer now targets `SystemTools\shell\WindowsUtilities\shell\WhoIsUsingThis`. Keep old `Explorer` child paths in cleanup during migration.
 - Files affected: `Install.ps1`, `app-metadata.json`, `CHANGELOG.md`, `PROJECT_RULES.md`, `D:\Users\joty79\scripts\InstallerCore\profiles\WhoIsUsingThis.json`.
 - Validation/tests run: Regenerated `Install.ps1` from `InstallerCore`; parser validation passed for generated installer.
+
+### Entry - 2026-05-14 (Corrected System Tools Windows category)
+
+- Date: 2026-05-14
+- Problem: `WhoIsUsingThis` was first migrated to the wrong `WindowsUtilities` category.
+- Root cause: The intended rename was `Apps & Windows` to `Windows`, not `Explorer` to `Windows Utilities`.
+- Guardrail/rule: `WhoIsUsingThis` remains child-only under `SystemTools\shell\Windows\shell\WhoIsUsingThis`. Keep cleanup for old flat, `Explorer`, and mistaken `WindowsUtilities` child paths during migration.
+- Files affected: `Install.ps1`, `app-metadata.json`, `README.md`, `CHANGELOG.md`, `PROJECT_RULES.md`, `D:\Users\joty79\scripts\InstallerCore\profiles\WhoIsUsingThis.json`.
+- Validation/tests run: Pending parser validation, local-source install, and HKCU registry readback after regeneration.

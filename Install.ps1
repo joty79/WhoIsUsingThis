@@ -74,41 +74,41 @@ $script:ProfileJson = @'
     "HKCU\\Software\\Classes\\*\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\Directory\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\CheckLocks",
-    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCR\\*\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\shell\\WhoIsUsingThis",
     "HKCR\\*\\shell\\CheckLocks",
     "HKCR\\Directory\\shell\\CheckLocks",
     "HKCR\\*\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCR\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCR\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WhoIsUsingThis",
-    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
     "HKCR\\*\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCR\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\*\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCR\\Directory\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCR\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\CheckLocks",
-    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\CheckLocks",
-    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\CheckLocks",
     "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Explorer\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Explorer\\shell\\WhoIsUsingThis",
     "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Explorer\\shell\\WhoIsUsingThis",
@@ -124,77 +124,93 @@ $script:ProfileJson = @'
     "HKCR\\*\\shell\\SystemTools\\shell\\Explorer\\shell\\CheckLocks",
     "HKCR\\Directory\\shell\\SystemTools\\shell\\Explorer\\shell\\CheckLocks",
     "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\Explorer\\shell\\CheckLocks",
-    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\Explorer\\shell\\CheckLocks"
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\Explorer\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+    "HKCR\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks"
   ],
   "registry_values": [
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "type": "REG_SZ",
       "value": "Who is using this?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "Icon",
       "type": "REG_SZ",
       "value": "imageres.dll,-102"
     },
     {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
@@ -202,27 +218,27 @@ $script:ProfileJson = @'
   ],
   "registry_verify": [
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
       "name": "MUIVerb",
       "expected": "Who is using this?"
     },
     {
-      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\*\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     },
     {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\WhoIsUsingThis\\command",
+      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }

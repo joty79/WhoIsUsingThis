@@ -2,6 +2,13 @@
 
 All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
+## [2026-05-14] - 1.0.4
+
+### Changed
+
+- Moved the shared context-menu child verb to `System Tools > Windows > Who is using this?`.
+- Regenerated `Install.ps1` from `InstallerCore` with cleanup for the incorrect `WindowsUtilities` migration path.
+
 ## [2026-05-14] - 1.0.3
 
 ### Changed
