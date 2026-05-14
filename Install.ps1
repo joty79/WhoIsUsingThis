@@ -180,24 +180,6 @@ $script:ProfileJson = @'
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
-      "name": "MUIVerb",
-      "type": "REG_SZ",
-      "value": "Who is using this?"
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
-      "name": "Icon",
-      "type": "REG_SZ",
-      "value": "imageres.dll,-102"
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
-      "name": "(default)",
-      "type": "REG_SZ",
-      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }
   ],
   "registry_verify": [
@@ -215,11 +197,6 @@ $script:ProfileJson = @'
       "key": "HKCU\\Software\\Classes\\Directory\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%1\""
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
-      "name": "(default)",
-      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }
   ],
   "wrapper_patches": null
