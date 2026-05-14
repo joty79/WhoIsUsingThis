@@ -140,7 +140,9 @@ $script:ProfileJson = @'
     "HKCR\\*\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
     "HKCR\\Directory\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
     "HKCR\\Directory\\Background\\shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
-    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks"
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\WindowsUtilities\\shell\\CheckLocks",
+    "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\TakeOwnership",
+    "HKCR\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\TakeOwnership"
   ],
   "registry_values": [
     {
@@ -196,24 +198,6 @@ $script:ProfileJson = @'
       "name": "(default)",
       "type": "REG_SZ",
       "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
-      "name": "MUIVerb",
-      "type": "REG_SZ",
-      "value": "Who is using this?"
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis",
-      "name": "Icon",
-      "type": "REG_SZ",
-      "value": "imageres.dll,-102"
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
-      "name": "(default)",
-      "type": "REG_SZ",
-      "value": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }
   ],
   "registry_verify": [
@@ -234,11 +218,6 @@ $script:ProfileJson = @'
     },
     {
       "key": "HKCU\\Software\\Classes\\Directory\\Background\\shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
-      "name": "(default)",
-      "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
-    },
-    {
-      "key": "HKCU\\Software\\Classes\\DesktopBackground\\Shell\\SystemTools\\shell\\Windows\\shell\\WhoIsUsingThis\\command",
       "name": "(default)",
       "expected": "wscript.exe \"{InstallRoot}\\WhoIsUsingThis.vbs\" \"%V\""
     }

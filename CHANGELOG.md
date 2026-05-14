@@ -6,6 +6,7 @@ All notable user-facing changes for `WhoIsUsingThis` are recorded here.
 
 ### Changed
 
+- Bumped `app-metadata.json` to `1.0.5` and removed the desktop-background `System Tools > Windows > Who is using this?` entry so `InstallAll` no longer pushes the shared desktop menu over the Windows 10 static-menu item limit; file/folder targets remain registered.
 - Moved the shared context-menu child verb to `System Tools > Windows > Who is using this?`.
 - Regenerated `Install.ps1` from `InstallerCore` with cleanup for the incorrect `WindowsUtilities` migration path.
 
